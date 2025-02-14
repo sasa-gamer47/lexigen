@@ -11,6 +11,9 @@
   "dependencies": {
     "@clerk/clerk-sdk-node": "^5.1.6",
     "@clerk/nextjs": "^6.10.2",
+    "@google/generative-ai": "^0.21.0",
+    "@hookform/resolvers": "^4.0.0",
+    "@radix-ui/react-label": "^2.1.2",
     "@radix-ui/react-popover": "^1.1.6",
     "@radix-ui/react-select": "^2.1.6",
     "@radix-ui/react-slot": "^1.1.2",
@@ -18,6 +21,7 @@
     "@radix-ui/react-toggle-group": "^1.1.2",
     "@types/dagre": "^0.7.52",
     "@xyflow/react": "^12.4.3",
+    "chalk": "^5.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dagre": "^0.8.5",
@@ -25,12 +29,15 @@
     "mongodb": "^6.12.0",
     "mongoose": "^8.9.5",
     "next": "15.1.5",
+    "prompt-sync": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hook-form": "^7.54.2",
     "reactflow": "^11.11.4",
     "svix": "^1.45.1",
     "tailwind-merge": "^3.0.1",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

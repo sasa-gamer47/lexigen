@@ -1,4 +1,20 @@
+"use client";
 
+import React, { useCallback, useEffect, useState } from "react";
+import ReactFlow, {
+  addEdge,
+  Controls,
+  MiniMap,
+  Background,
+  useNodesState,
+  useEdgesState,
+  ReactFlowInstance,
+  Connection,
+  Edge,
+  Node,
+  MarkerType,
+} from "reactflow";
+import "reactflow/dist/style.css";
 
 
 
@@ -417,3 +433,172 @@
 // };
 
 // export default MindMapEditor;
+
+
+
+
+
+
+// "use client";
+
+// import React, { useCallback, useEffect, useState } from "react";
+// import ReactFlow, {
+//   addEdge,
+//   Controls,
+//   MiniMap,
+//   Background,
+//   useNodesState,
+//   useEdgesState,
+//   ReactFlowInstance,
+//   Connection,
+//   Edge,
+//   Node,
+//   MarkerType,
+// } from "reactflow";
+// import "reactflow/dist/style.css";
+
+// // Custom Editable Node for interactive text editing
+// const EditableNode = ({ id, data }: { id: string; data: any }) => {
+//   const [editing, setEditing] = useState(false);
+//   const [value, setValue] = useState(data.label);
+
+//   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+//     setValue(e.target.value);
+//   };
+
+//   const onBlur = () => {
+//     setEditing(false);
+//     data.onChange(id, value);
+//   };
+
+//   return (
+//     <div
+//       style={{
+//         padding: "10px",
+//         border: "1px solid #777",
+//         borderRadius: "5px",
+//         backgroundColor: "#fff",
+//         textAlign: "center",
+//         whiteSpace: "pre-wrap",
+//         fontSize: "14px",
+//         boxShadow: "2px 2px 5px rgba(0,0,0,0.3)",
+//         cursor: "pointer",
+//       }}
+//       onDoubleClick={() => setEditing(true)}
+//     >
+//       {editing ? (
+//         <input
+//           value={value}
+//           onChange={onChange}
+//           onBlur={onBlur}
+//           autoFocus
+//           style={{ width: "100%", whiteSpace: "pre-wrap", fontSize: "14px" }}
+//         />
+//       ) : (
+//         <div>{value}</div>
+//       )}
+//     </div>
+//   );
+// };
+
+// const nodeTypes = { editable: EditableNode };
+
+// type MindMapData = {
+//   nodes: Node[];
+//   edges: Edge[];
+// };
+
+// export default function MindMapEditor({ initialData }: { initialData?: MindMapData }) {
+//   const [nodes, setNodes, onNodesChange] = useNodesState(initialData?.nodes || []);
+//   const [edges, setEdges, onEdgesChange] = useEdgesState(initialData?.edges || []);
+//   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
+
+//   // Update node label and keep the onChange callback
+//   const updateNodeLabel = useCallback(
+//     (id: string, newLabel: string) => {
+//       setNodes((nds) =>
+//         nds.map((node) =>
+//           node.id === id
+//             ? { ...node, data: { ...node.data, label: newLabel, onChange: updateNodeLabel } }
+//             : node
+//         )
+//       );
+//     },
+//     [setNodes]
+//   );
+
+//   // Initialize with a central node if no data is provided
+//   useEffect(() => {
+//     if (!initialData) {
+//       setNodes([
+//         {
+//           id: "1",
+//           type: "editable",
+//           data: { label: "Central Topic", onChange: updateNodeLabel },
+//           position: { x: 400, y: 300 },
+//           style: { whiteSpace: "pre-wrap" },
+//         },
+//       ]);
+//     }
+//   }, [initialData, setNodes, updateNodeLabel]);
+
+//   // Handle new connections with consistent arrow styling
+//   const onConnect = useCallback(
+//     (params: Connection | Edge) =>
+//       setEdges((eds) =>
+//         addEdge(
+//           {
+//             ...params,
+//             markerEnd: {
+//               type: MarkerType.ArrowClosed,
+//               color: "#00796b",
+//               width: 25,
+//               height: 25,
+//             },
+//             style: { stroke: "#00796b", strokeWidth: 2 },
+//           },
+//           eds
+//         )
+//       ),
+//     [setEdges]
+//   );
+
+//   // Store the ReactFlow instance and adjust view
+//   const onInit = useCallback((reactFlowInstance: ReactFlowInstance) => {
+//     setRfInstance(reactFlowInstance);
+//     reactFlowInstance.fitView();
+//   }, []);
+
+//   return (
+//     <div style={{ height: "100vh", width: "100%" }}>
+//       <ReactFlow
+//         nodes={nodes}
+//         edges={edges}
+//         onNodesChange={onNodesChange}
+//         onEdgesChange={onEdgesChange}
+//         onConnect={onConnect}
+//         onInit={onInit}
+//         nodeTypes={nodeTypes}
+//         defaultEdgeOptions={{
+//           markerEnd: {
+//             type: MarkerType.ArrowClosed,
+//             color: "#00796b",
+//             width: 25,
+//             height: 25,
+//           },
+//           style: { stroke: "#00796b", strokeWidth: 2 },
+//         }}
+//         fitView
+//       >
+//         <MiniMap
+//           nodeColor={(node) => {
+//             return (node.style?.background as string) || "#ccc";
+//           }}
+//           nodeStrokeWidth={3}
+//         />
+//         <Controls />
+//         <Background gap={16} />
+//       </ReactFlow>
+//     </div>
+//   );
+// }
