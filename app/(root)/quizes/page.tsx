@@ -3,21 +3,20 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { getMindMaps } from "@/lib/actions/mindmaps.actions";
+import { getQuizs } from "@/lib/actions/quizs.actions";
 import Sidebar from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { getUserByClerkId } from "@/lib/actions/user.actions";
 
-interface Mindmap {
+interface Quiz {
     _id: string;
     title: string;
     description: string;
     createdAt: string;
-    // Add other properties if needed
+    history?: any[]; // Make history optional
 }
 
 interface User {
@@ -25,32 +24,37 @@ interface User {
     // add other user properties as needed
 }
 
-const MindmapsPage = () => {
+const QuizesPage = () => {
     const router = useRouter();
-    const [mindmaps, setMindmaps] = useState<Mindmap[]>([]);
+    const [quizes, setQuizes] = useState<Quiz[]>([]);
+
     const { isLoaded, isSignedIn, userId, sessionId, getToken } = useAuth()
-    const [user, setUser] = useState<User | null>(null)
+     const [user, setUser] = useState<User | null>(null)
+
+     useEffect(() => {
+             const fetchUser = async () => {
+                 const user = userId ? await getUserByClerkId(userId) : null
+                 setUser(user[0])
+     
+                 console.log('user: ', user[0])
+             }
+     
+             fetchUser()
+         }, [userId])
 
     useEffect(() => {
-        const fetchUser = async () => {
-            const user = userId ? await getUserByClerkId(userId) : null
-            setUser(user?.[0])
+        if (userId) {
+            const fetchQuizes = async () => {
+                const quiz = user ? await getQuizs(user._id) : null
 
-            console.log('user: ', user?.[0])
-        }
-
-        fetchUser()
-    }, [userId])
-
-    useEffect(() => {
-        if (user) {
-            const fetchMindmaps = async () => {
-                const fetchedMindmaps = await getMindMaps(user._id);
-                setMindmaps(fetchedMindmaps || []);
+                console.log(quiz)
+                setQuizes(quiz || []); // Handle potential undefined
             };
-            fetchMindmaps();
+            fetchQuizes();
         }
     }, [user]);
+
+
 
     if (!isLoaded) {
         return <div>Loading...</div>;
@@ -66,24 +70,29 @@ const MindmapsPage = () => {
             <Sidebar />
             <main className="absolute w-5/6 right-0 top-20 bottom-0 p-5 flex flex-col items-center gap-y-5">
                 <h1 className="text-sky-200 text-3xl font-semibold text-center">
-                    Your Mindmaps
+                    Your Quizzes
                 </h1>
                 <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {mindmaps.length > 0 ? (
-                        mindmaps.map((mindmap) => (
-                            <Link href={`/mindmaps/${mindmap._id}`} key={mindmap._id}>
+                    {quizes.length > 0 ? (
+                        quizes.map((quiz) => (
+                            <Link href={`/quizes/${quiz._id}`} key={quiz._id}>
                                 <Card className="bg-black/10 hover:bg-black/20 transition-colors cursor-pointer">
                                     <CardHeader>
                                         <CardTitle className="text-white font-semibold">
-                                            {mindmap.title}
+                                            {quiz.title}
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="text-white">
-                                        <p className="text-sm">{mindmap.description}</p>
+                                        <p className="text-sm">{quiz.description}</p>
                                         <div className="mt-4 flex justify-between items-center">
                                             <p className="text-xs text-gray-400">
-                                                Created: {format(new Date(mindmap.createdAt), "dd/MM/yyyy")}
+                                                Created: {format(new Date(quiz.createdAt), "dd/MM/yyyy")}
                                             </p>
+                                            {quiz.history?.length > 0 && ( // Optional chaining and check if greater than 0
+                                                <p className="text-xs text-green-400">
+                                                    {quiz.history.length} Attempts
+                                                </p>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -91,8 +100,8 @@ const MindmapsPage = () => {
                         ))
                     ) : (
                         <div className="text-white text-center col-span-full">
-                            <p>You haven't created any mindmaps yet.</p>
-                            <Button className="mt-4" onClick={() => router.push('/mindmaps/create')}>Create Mindmap</Button>
+                            <p>You haven't created any quizzes yet.</p>
+                            <Button className="mt-4" onClick={() => router.push('/quizes/create')}>Create Quiz</Button>
                         </div>
                     )}
                 </div>
@@ -101,4 +110,4 @@ const MindmapsPage = () => {
     );
 };
 
-export default MindmapsPage;
+export default QuizesPage;

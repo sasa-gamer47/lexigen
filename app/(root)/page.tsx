@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import MindmapIcon from "@/img/MindmapIcon.png"
 import QuizIcon from "@/img/QuizIcon.png"
 import PowerpointIcon from "@/img/PowerpointIcon.png"
+import DeepResearchIcon from "@/img/DeepResearchIcon.png"
 
 
 export default function Home() {
@@ -60,6 +61,16 @@ export default function Home() {
             </Card>
             <CardContent className="absolute top-5 w-full h-full flex items-center justify-center">
               <Image src={PowerpointIcon} layout='responsive' alt="mind map" />
+            </CardContent>
+          </div>
+          <div className={cardStyle}>
+            <Card className='relative min-w-80 min-h-80 overflow-hidden opacity-35'>
+              <CardHeader className="max-h-8">
+                <CardTitle className='text-3xl font-bold text-cyan-700 text-center'>Deep Research</CardTitle>
+              </CardHeader>
+            </Card>
+            <CardContent className="absolute top-5 w-full h-full flex items-center justify-center">
+              <Image src={DeepResearchIcon} layout='responsive' alt="mind map" />
             </CardContent>
           </div>
 

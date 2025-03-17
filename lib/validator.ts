@@ -1,3 +1,4 @@
+import { title } from "process";
 import * as z from "zod";
 
 export const createMindMapSchema = z.object({
@@ -13,3 +14,23 @@ export const createMindMapSchema = z.object({
   textQuantity: z.string(),
   theme: z.string(),
 });
+
+export const deepResearchSchema = z.object({
+  topic: z.string().min(3, {
+    message: "Topic must be at least 3 characters.",
+  }),
+
+});
+
+
+export const createQuizSchema = z.object({
+  title: z.string().min(3, {
+    message: "Title must be at least 3 characters.",
+  }),
+  description: z.string().min(3, {
+    message: "Description must be at least 3 characters.",
+  }),
+  quiz: z.string().min(3, {
+    message: "Mindmap must be at least 3 characters.",
+  }),
+})

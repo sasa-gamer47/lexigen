@@ -12,3 +12,10 @@ export type CreateMindMapParams = {
     owner: string
     mindMap: any
 }
+
+export type CreateQuizParams = {
+    title: string
+    description: string
+    owner: string
+    quiz: any
+}

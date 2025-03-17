@@ -25,7 +25,6 @@ import {
 import { Input } from "@/components/ui/input";
 import Sidebar from "@/components/Sidebar";
 import { Textarea } from "@/components/ui/textarea";
-import { create } from "domain";
 import { createMindMap } from "@/lib/actions/mindmaps.actions";
 
 import { useAuth } from "@clerk/nextjs";
@@ -53,7 +52,7 @@ export default function App() {
   const [mindMap, setMindMap] = useState<any>({})
 
   const { isLoaded, isSignedIn, userId, sessionId, getToken } = useAuth()
-    const [user, setUser] = useState<User | null>(null)
+    const [user, setUser] = useState<User>()
 
 
 
@@ -62,7 +61,7 @@ export default function App() {
   useEffect(() => {
           const fetchUser = async () => {
               const user = userId ? await getUserByClerkId(userId) : null
-              setUser(user?.[0] || null)
+              setUser(user?.[0])
   
               console.log('user: ', user?.[0])
           }
@@ -186,22 +185,22 @@ const form = useForm<z.infer<typeof createMindMapSchema>>({
         setData(jsonData);
 
         setMindMap(jsonData)
-
-
-
-        const mindMapData = {
-          title: data.title,
-          description: data.description,
-          owner: "67ab28e61051ee7d8d3fe9a8",
-          createdAt: new Date(),
-          mindMap: jsonData
+        
+        if (user?._id) {
+          const mindMapData = {
+            title: data.title,
+            description: data.description,
+            owner: user._id,
+            createdAt: new Date(),
+            mindMap: jsonData
+          }
+      
+          console.log(mindMapData)
+      
+          const newMindMap = await createMindMap(mindMapData)
+      
+          console.log("newMindMap: ", newMindMap)
         }
-    
-        console.log(mindMapData)
-    
-        const newMindMap = await createMindMap(mindMapData)
-    
-        console.log("newMindMap: ", newMindMap)
 
 
       } catch (jsonError: any) {

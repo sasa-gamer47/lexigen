@@ -85,6 +85,7 @@ export default function App({ params }: { params: Promise<{ id: string }> }) {
 
     useEffect(() => {
         const fetchMindMap = async () => {
+            console.log(id)
             const fetchedMindMap = user ? await getMindMap(id) : null;
             console.log('MindMap data fetched from API: ', fetchedMindMap); // Log fetched data
 

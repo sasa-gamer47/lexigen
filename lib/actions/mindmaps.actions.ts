@@ -39,9 +39,10 @@ export async function getMindMaps(userId: string) {
     try {
         await connectToDatabase()
 
+        console.log(userId)
         const mindMaps = await MindMap.find({ owner: userId })
 
-        // console.log('mindMaps: ', mindMaps)
+        console.log('mindMaps: ', mindMaps)
 
         return JSON.parse(JSON.stringify(mindMaps))
     } catch (error) {
@@ -56,7 +57,7 @@ export async function getMindMap(mindMapId: string) {
 
         const mindMap = await MindMap.findOne({ _id: mindMapId })
 
-        // console.log('mindMap: ', mindMap)
+        console.log('mindMap: ', mindMap)
 
         return JSON.parse(JSON.stringify(mindMap))
     } catch (error) {
