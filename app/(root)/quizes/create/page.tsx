@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import Sidebar from "@/components/Sidebar";
 import { Textarea } from "@/components/ui/textarea";
 import { createQuiz } from "@/lib/actions/quizs.actions";
+import { CreateQuizParams } from "@/types";
 
 import { useAuth } from "@clerk/nextjs";
 import { getUserByClerkId } from "@/lib/actions/user.actions";
@@ -50,23 +51,23 @@ export default function App() {
   const [secondInput, setsecondInput] = useState<any>()
 
   const [quiz, setQuiz] = useState<any>({})
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const { isLoaded, isSignedIn, userId, sessionId, getToken } = useAuth()
-    const [user, setUser] = useState<User>()
+    const [user, setUser] = useState<User | null>(null);
+    const [userID, setUserID] = useState<string | null>(null);
 
-
-
-
-
-  useEffect(() => {
-          const fetchUser = async () => {
-              const user = userId ? await getUserByClerkId(userId) : null
-              setUser(user?.[0])
-  
-              console.log('user: ', user?.[0])
-          }
-          fetchUser()
-      }, [userId]);
+    useEffect(() => {
+        const fetchUser = async () => {
+            if (userId) {
+                const fetchedUser = await getUserByClerkId(userId);
+                setUser(fetchedUser?.[0] || null);
+                setUserID(fetchedUser?.[0]?._id || null);
+            }
+        };
+        fetchUser();
+    }, [userId]);
   
 
   const geminiInputPrompt = (topic: string | undefined, ) => `
@@ -133,7 +134,14 @@ const form = useForm<z.infer<typeof createQuizSchema>>({
       return;
     }
 
-    // console.log("API Key:", apiKey);
+    if (!userID) {
+        console.error("User ID is not available yet.");
+        return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    console.log("Starting AI process...");
 
     const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -183,43 +191,43 @@ const form = useForm<z.infer<typeof createQuizSchema>>({
         setQuiz(jsonData)
 
         console.log(user);
+        console.log(userID);
         
         
-        if (user?._id) {
-            console.log('helllloooou');
+        
+        console.log('helllloooou');
             
-
-          const quizData = {
+        const quizData: CreateQuizParams = {
             title: data.title,
             description: data.description,
-            owner: user._id,
+            owner: userID,
             createdAt: new Date(),
-            quiz: jsonData
-          }
-      
-          console.log(quizData)
-      
-          const newQuiz = await createQuiz(quizData)
-      
-          console.log("newQuiz: ", newQuiz)
-        }
+            quiz: jsonData,
+            history: [],
 
+        }
+      
+        console.log(quizData)
+      
+        const newQuiz = await createQuiz(quizData)
+      
+        console.log("newQuiz: ", newQuiz)
+        console.log("AI process completed successfully!");
 
       } catch (jsonError: any) {
         console.error("Error parsing JSON response:", jsonError);
         console.error("Response text that failed to parse:", jsonString);
         alert("Error parsing Gemini response. Check console for details.");
-
-
-        // secondRun(userInput, jsonString)
-
-        
+        setError("Error parsing Gemini response.");
       }
     } catch (apiError: any) {
       console.error("Error from Gemini API:", apiError);
       alert("Error fetching data from Gemini API. Check console for details.");
+      setError("Error fetching data from Gemini API.");
+    } finally {
+        setIsLoading(false);
     }
-  }, [apiKey]);
+  }, [apiKey, userID]);
 
 
   const onSubmit = async (data: z.infer<typeof createQuizSchema>) => {
@@ -290,11 +298,13 @@ const form = useForm<z.infer<typeof createQuizSchema>>({
              
                 
               <div className="w-full flex items-center justify-center">
-                <Button type="submit">Generate Mind Map</Button>
+                <Button type="submit" disabled={isLoading}>Generate Mind Map</Button>
               </div>
             </form>
           </Form>
         </div>
+        {isLoading && <p className="text-white">Loading... Please wait.</p>}
+        {error && <p className="text-red-500">{error}</p>}
       </div>
     </div>
   );

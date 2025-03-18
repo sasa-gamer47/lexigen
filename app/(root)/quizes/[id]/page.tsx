@@ -242,7 +242,7 @@ export default function App({ params }: { params: Promise<{ id: string }> }) {
         },
     };
 
-    const handleHistoryEntryClick = (historyEntry: (typeof quiz.history)[0] | undefined) => {
+    const handleHistoryEntryClick = (historyEntry: any) => {
         if (!quiz) return;
         setSelectedHistoryEntry(historyEntry);
         setUserAnswers(historyEntry.userAnswers);
@@ -391,7 +391,7 @@ export default function App({ params }: { params: Promise<{ id: string }> }) {
                     </TabsContent>
                     <TabsContent value="history">
                         {quiz && quiz?.history && quiz.history.length > 0 ? (
-                            <div className="w-full m-4 my-2 p-4 bg-black/10 h-full rounded-lg overflow-y-auto flex flex-col items-center gap-y-4">                                
+                            <div className="w-full m-4 my-2 p-4 bg-black/10 h-full rounded-lg overflow-y-auto flex flex-col items-center gap-y-4">
                                 {quiz.history.map((historyEntry: any, index: number) => (
                                     <div key={index} className="w-full p-4 rounded-lg bg-black/20 cursor-pointer hover:bg-black/30 transition-colors" onClick={() => handleHistoryEntryClick(historyEntry as any)}>
                                         <h2 className="text-white font-semibold text-lg  font-semibold text-lg">Attempt {quiz.history.length - index} - {format(new Date(historyEntry.date), 'dd/MM/yyyy HH:mm')}</h2>
@@ -407,7 +407,7 @@ export default function App({ params }: { params: Promise<{ id: string }> }) {
                         )}
                     </TabsContent>
                         {quiz && selectedHistoryEntry && (
-                            <Tabs defaultValue={historyDetailTab} className="w-full">
+                            <Tabs defaultValue={historyDetailTab} className="w-full" >
                                 <TabsList className="grid w-full grid-cols-2" >
                                 <TabsTrigger onClick={() => setHistoryDetailTab("history-results")} value="history-results">Results</TabsTrigger>
                                 <TabsTrigger onClick={() => setHistoryDetailTab("history-review")} value="history-review">Review</TabsTrigger>
@@ -415,9 +415,9 @@ export default function App({ params }: { params: Promise<{ id: string }> }) {
                                 <TabsContent value="history-results">
                                     <div className="w-full bg-black/10 p-4 rounded-lg flex flex-col items-center gap-y-4">
                                         <h1 className="text-sky-200 text-2xl font-semibold text-center">Results: </h1>
-                                        <p className="text-white text-center">Correct answers: {selectedHistoryEntry.correctAnswers} / {quiz.quiz.length}</p>
-                                        <p className="text-white text-center">Incorrect answers: {selectedHistoryEntry.incorrectAnswers} / {quiz.quiz.length}</p>
-                                        <p className="text-white text-center">Date: {format(new Date(selectedHistoryEntry.date), 'dd/MM/yyyy HH:mm')}</p>
+                                        <p className="text-white text-center">Correct answers: {selectedHistoryEntry.correctAnswers} / {quiz?.quiz.length}</p>
+                                        <p className="text-white text-center">Incorrect answers: {selectedHistoryEntry.incorrectAnswers} / {quiz?.quiz.length}</p>
+                                        <p className="text-white text-center">Date: {selectedHistoryEntry.date ? format(new Date(selectedHistoryEntry.date), 'dd/MM/yyyy HH:mm') : ''}</p>
                                         <div className="w-full">
                                             <Bar data={{
                                                 labels: ['Correct', 'Incorrect'],
@@ -436,7 +436,7 @@ export default function App({ params }: { params: Promise<{ id: string }> }) {
                                 </TabsContent>
                                 <TabsContent value="history-review">
                                     <div className="w-full m-4 my-2 p-4 bg-black/10 h-full rounded-lg overflow-y-auto flex flex-col items-center gap-y-4">
-                                        {quiz.quiz.map((quizItem: QuizQuestion, index: number) => (
+                                        {quiz?.quiz.map((quizItem: QuizQuestion, index: number) => (
                                             <div key={index} className="w-full p-4 rounded-lg bg-black/20">
                                                 <h2 className="text-white font-semibold text-lg">{index + 1}. {quizItem.question}</h2>
                                                 <div className="mt-2 flex flex-col gap-2">
@@ -463,7 +463,7 @@ export default function App({ params }: { params: Promise<{ id: string }> }) {
                                                     ))}
                                                 </div>
                                                 {quizItem.options.find(option => option.correct) && (
-                                                    <div className="mt-2 text-white">
+                                                    <div className="mt-2 text-white" >
                                                         <p>Correct Explanation: {quizItem.explanation.correctReason}</p>
                                                     </div>
                                                 )}

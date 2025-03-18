@@ -18,4 +18,6 @@ export type CreateQuizParams = {
     description: string
     owner: string
     quiz: any
+    history: any
+    createdAt: Date
 }

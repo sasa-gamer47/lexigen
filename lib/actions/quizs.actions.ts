@@ -11,8 +11,11 @@ import { Schema, Types, model, models } from "mongoose";
 import Quiz from '../database/models/quiz.model'
 
 export async function createQuiz(quiz: CreateQuizParams) {
+    console.log("creating quiz")
     try {
         await connectToDatabase()
+
+        console.log("creating quiz.......")
 
 
         console.log('quiz: ', quiz)

@@ -88,7 +88,7 @@ const QuizesPage = () => {
                                             <p className="text-xs text-gray-400">
                                                 Created: {format(new Date(quiz.createdAt), "dd/MM/yyyy")}
                                             </p>
-                                            {quiz.history?.length > 0 && ( // Optional chaining and check if greater than 0
+                                            {quiz.history && quiz.history.length > 0 && ( // Optional chaining and check if greater than 0
                                                 <p className="text-xs text-green-400">
                                                     {quiz.history.length} Attempts
                                                 </p>
