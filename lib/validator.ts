@@ -22,7 +22,6 @@ export const deepResearchSchema = z.object({
 
 });
 
-
 export const createQuizSchema = z.object({
   title: z.string().min(3, {
     message: "Title must be at least 3 characters.",
@@ -33,4 +32,10 @@ export const createQuizSchema = z.object({
   quiz: z.string().min(3, {
     message: "Mindmap must be at least 3 characters.",
   }),
-})
+});
+
+export const createLessonSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string(),
+  lesson: z.string().min(1, "Lesson content is required"),
+});

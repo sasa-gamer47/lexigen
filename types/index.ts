@@ -21,3 +21,38 @@ export type CreateQuizParams = {
     history: any
     createdAt: Date
 }
+
+export type LessonContent = {
+  topic: string;
+  language: string;
+  index: string[][];
+  lessons: {
+    indexTitle: string;
+    item: string;
+    simplified: string;
+    detailed: string;
+    schematic: string;
+    indexNumber: number;
+    itemNumber: number;
+    mindMap?: any;
+  }[];
+}
+
+export type Lesson = {
+  _id: string;
+  title: string;
+  description: string;
+  owner: string;
+  lesson: LessonContent;
+  history: any[];
+  createdAt: Date;
+}
+
+export type CreateLessonParams = {
+  title: string
+  description: string
+  owner: string
+  createdAt: Date
+  lesson: LessonContent
+  history: any[]
+}

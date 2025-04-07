@@ -2,12 +2,10 @@
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import 'reactflow/dist/style.css';
-
 import Sidebar from "@/components/Sidebar";
 import { useAuth } from "@clerk/nextjs";
 import { getUserByClerkId } from "@/lib/actions/user.actions";
 import { getMindMap } from "@/lib/actions/mindmaps.actions";
-
 import {
     ReactFlow,
     useNodesState,
@@ -17,8 +15,24 @@ import {
     Controls,
     getRectOfNodes,
     getTransformForBounds,
+    MiniMap,
+    Connection,
+    ConnectionMode,
+    MarkerType,
+    Node,
+    Edge,
+    NodeProps,
 } from "reactflow";
-
+import { Button } from "@/components/ui/button";
+import { Trash, LayoutDashboard, Plus, Undo, Redo, CircleDot, ArrowRightCircle, Trees, Edit, Palette, Text, Circle, Square } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { motion, AnimatePresence } from 'framer-motion';
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useTheme } from "next-themes";
 
 interface User {
     _id: string;
@@ -38,677 +52,675 @@ interface MindMapResponse {
     mindMap?: MindMapData;
 }
 
+type LayoutType = 'grid' | 'horizontal' | 'vertical' | 'radial' | 'hierarchy';
+type MapStyle = 'modern' | 'classic' | 'dark' | 'handDrawn';
 
+const nodeRadius = 50;
+const horizontalSpacing = 150;
+const verticalSpacing = 100;
+const radialSpacing = 120; // Increased spacing for better radial layout
+const hierarchySpacingX = 200;
+const hierarchySpacingY = 150;
+
+// Layout Calculation Functions
+const calculateGridPosition = (index: number, columns: number): { x: number; y: number } => {
+    const x = (index % columns) * horizontalSpacing;
+    const y = Math.floor(index / columns) * verticalSpacing;
+    return { x, y };
+};
+
+const calculateHorizontalPosition = (index: number): { x: number; y: number } => {
+    const x = index * horizontalSpacing;
+    const y = 0;
+    return { x, y };
+};
+
+const calculateVerticalPosition = (index: number): { x: number; y: number } => {
+    const x = 0;
+    const y = index * verticalSpacing;
+    return { x, y };
+};
+
+const calculateRadialPosition = (index: number, total: number, centerX: number, centerY: number): { x: number; y: number } => {
+    const angle = (index / total) * 2 * Math.PI - Math.PI / 2;
+    const radius = radialSpacing * Math.sqrt(total); // Adjust radius scaling
+    const x = centerX + radius * Math.cos(angle);
+    const y = centerY + radius * Math.sin(angle);
+    return { x, y };
+};
+
+const calculateHierarchyPosition = (nodes: Node[], edges: Edge[]): Node[] => {
+    const newNodes = [...nodes];
+    const roots = newNodes.filter(node => !edges.find(edge => edge.target === node.id));
+    if (roots.length === 0) return newNodes;
+
+    const levels: Record<string, number> = {};
+    const assigned: Set<string> = new Set();
+
+    const assignLevels = (nodeId: string, level: number) => {
+        if (levels[nodeId] === undefined) {
+            levels[nodeId] = level;
+            assigned.add(nodeId);
+            const children = edges.filter(edge => edge.source === nodeId).map(edge => edge.target);
+            children.forEach(childId => assignLevels(childId, level + 1));
+        }
+    };
+
+    roots.forEach(root => assignLevels(root.id, 0));
+
+    const maxLevel = Math.max(...Object.values(levels));
+    const nodesByLevel: Record<number, Node[]> = {};
+
+    newNodes.forEach(node => {
+        const level = levels[node.id] ?? maxLevel + 1;
+        if (!nodesByLevel[level]) {
+            nodesByLevel[level] = [];
+        }
+        nodesByLevel[level].push(node);
+    });
+
+    Object.entries(nodesByLevel).forEach(([, levelNodes], levelIndex) => {
+        levelNodes.forEach((node, nodeIndex) => {
+            const x = (nodeIndex - levelNodes.length / 2 + 0.5) * hierarchySpacingX;
+            const y = levelIndex * hierarchySpacingY;
+            newNodes.find(n => n.id === node.id)!.position = { x, y };
+        });
+    });
+    return newNodes;
+};
+
+// Layout Application
+const applyLayout = (nodes: Node[], layout: LayoutType, edges: Edge[]): Node[] => {
+    if (nodes.length === 0) return [];
+    let newNodes: Node[] = [];
+    switch (layout) {
+        case 'grid':
+            const columns = Math.ceil(Math.sqrt(nodes.length));
+            newNodes = nodes.map((node, index) => ({
+                ...node,
+                position: calculateGridPosition(index, columns),
+            }));
+            break;
+        case 'horizontal':
+            newNodes = nodes.map((node, index) => ({
+                ...node,
+                position: calculateHorizontalPosition(index),
+            }));
+            break;
+        case 'vertical':
+            newNodes = nodes.map((node, index) => ({
+                ...node,
+                position: calculateVerticalPosition(index),
+            }));
+            break;
+        case 'radial':
+            const centerX = 0;
+            const centerY = 0;
+            newNodes = nodes.map((node, index) => {
+                return {
+                    ...node,
+                    position: calculateRadialPosition(index, nodes.length, centerX, centerY),
+                }
+            });
+            break;
+        case 'hierarchy':
+            newNodes = calculateHierarchyPosition(nodes, edges);
+            break;
+        default:
+            newNodes = nodes;
+    }
+    return newNodes;
+};
+
+// Custom Node Component
+const EditableNode: React.FC<NodeProps> = ({ data, id, selected, style, isConnectable }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [label, setLabel] = useState(data?.label || 'Node');
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        setLabel(data?.label || 'Node');
+    }, [data]);
+
+    useEffect(() => {
+        if (isEditing && inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [isEditing]);
+
+    const handleLabelChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setLabel(event.target.value);
+    };
+
+    const handleLabelSubmit = (event: React.FormEvent) => {
+        event.preventDefault();
+        if (inputRef.current) {
+            inputRef.current.blur();
+        }
+        setIsEditing(false);
+    };
+
+    const handleEdit = () => {
+        setIsEditing(true);
+    };
+
+    const handleBlur = () => {
+        setIsEditing(false);
+    };
+
+    const getNodeStyle = () => {
+        const baseStyle: React.CSSProperties = {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '10px',
+            width: 'auto',
+            height: 'auto',
+            minWidth: '100px',
+            minHeight: '40px',
+            cursor: 'pointer',
+            boxShadow: selected ? '0 0 5px 2px rgba(0, 128, 255, 0.5)' : 'none',
+        };
+        const combinedStyle = { ...baseStyle, ...style };
+        return combinedStyle;
+    };
+
+    return (
+        <div style={getNodeStyle()} className="relative">
+            <AnimatePresence>
+                {isEditing ? (
+                    <motion.form
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        onSubmit={handleLabelSubmit}
+                        className="absolute inset-0 flex items-center justify-center"
+                    >
+                        <Input
+                            ref={inputRef}
+                            value={label}
+                            onChange={handleLabelChange}
+                            onBlur={handleBlur}
+                            className="text-black text-sm font-medium"
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                padding: '0.5rem',
+                                textAlign: 'center',
+                                border: 'none',
+                                outline: 'none',
+                                backgroundColor: 'transparent',
+                                fontSize: 'inherit',
+                                fontFamily: 'inherit',
+                            }}
+                        />
+                    </motion.form>
+                ) : (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className="text-sm font-medium select-none"
+                        style={{
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            maxWidth: '100%',
+                            userSelect: 'none'
+                        }}
+                        onDoubleClick={handleEdit}
+                        title="Double click to edit"
+                    >
+                        {label}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
+// Main App Component
 export default function App({ params }: { params: Promise<{ id: string }> }) {
     const { id } = React.use(params);
+    const { isLoaded, isSignedIn, userId } = useAuth();
+    const [user, setUser] = useState<User | null>(null);
+    const [mindMap, setMindMap] = useState<MindMapResponse | null>(null);
 
-    const { isLoaded, isSignedIn, userId, sessionId, getToken } = useAuth()
-    const [user, setUser] = useState<User | null>(null)
-    const [mindMap, setMindMap] = useState<MindMapResponse | null>(null)
-
-    // **REMOVED HARDCODED DATA**
-    const [nodes, setNodes, onNodesChange] = useNodesState<any>([]); // Initialize with empty arrays
-    const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]); // Initialize with empty arrays
+    const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
+    const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
 
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
-    const reactFlowBounds = useRef<SVGRect | null>(null);
     const [rfInstance, setRfInstance] = useState<any>(null);
+    const [history, setHistory] = useState<{ nodes: Node[]; edges: Edge[] }[]>([{ nodes: [], edges: [] }]);
+    const [historyIndex, setHistoryIndex] = useState(0);
 
+    const [layout, setLayout] = useState<LayoutType>("grid");
+    const [mapStyle, setMapStyle] = useState<MapStyle>("modern"); // Added state for map style
+
+    // Aesthetic Properties
+    const [nodeColor, setNodeColor] = useState('white');
+    const [borderColor, setBorderColor] = useState('black');
+    const [textColor, setTextColor] = useState('black');
+    const [nodeShape, setNodeShape] = useState<'circle' | 'square'>('square');
+    const [borderWidth, setBorderWidth] = useState(2);
+    const [fontSize, setFontSize] = useState(14);
+    const { setTheme } = useTheme();
+
+    // Connection Handler
     const onConnect = useCallback(
-        (params: any) => setEdges((eds) => addEdge(params, eds)),
+        (params: Connection) => setEdges((eds) => addEdge({ ...params, markerEnd: { type: MarkerType.ArrowClosed, color: 'black' } }, eds)),
         [setEdges]
     );
 
+    // Fit View
     const fitView = useCallback(() => {
-        if (!rfInstance || !reactFlowWrapper.current || nodes.length === 0) { // Check for nodes.length
-            return; // Don't fit view if there are no nodes yet
+        if (!rfInstance || !reactFlowWrapper.current || nodes.length === 0) {
+            return;
         }
-
         const nodesBounds = getRectOfNodes(nodes);
         const wrapperBounds = reactFlowWrapper.current.getBoundingClientRect();
         const transform = getTransformForBounds(nodesBounds, wrapperBounds.width, wrapperBounds.height, 0.7, 2);
-
         rfInstance.setTransform(transform);
-    }, [rfInstance, reactFlowWrapper, nodes]);
+    }, [rfInstance, nodes]);
 
-
+    // Fetch User Data
     useEffect(() => {
         const fetchUser = async () => {
-            const user = userId ? await getUserByClerkId(userId) : null
-            setUser(user?.[0] || null)
-
-            console.log('user: ', user?.[0])
-        }
-        fetchUser()
+            const userData = userId ? await getUserByClerkId(userId) : null;
+            setUser(userData?.[0] || null);
+        };
+        fetchUser();
     }, [userId]);
 
-
+    // Fetch Mind Map Data
     useEffect(() => {
         const fetchMindMap = async () => {
-            console.log(id)
-            const fetchedMindMap = user ? await getMindMap(id) : null;
-            console.log('MindMap data fetched from API: ', fetchedMindMap); // Log fetched data
+            let fetchedMindMap;
+            try {
+                fetchedMindMap = user ? await getMindMap(id) : null;
+                console.log('Fetched MindMap:', fetchedMindMap); // Inspect the fetched data
 
-            if (fetchedMindMap && fetchedMindMap.mindMap) {
-                setMindMap(fetchedMindMap);
-                setNodes(fetchedMindMap.mindMap.initialNodes || []);
-                setEdges(fetchedMindMap.mindMap.initialEdges || []);
-                console.log('Nodes state updated with fetched data:', fetchedMindMap.mindMap.initialNodes);
-                console.log('Edges state updated with fetched data:', fetchedMindMap.mindMap.initialEdges);
-            } else {
-                console.log("Mind map data or mindMap.mindMap is not available from API.");
+                if (fetchedMindMap && fetchedMindMap.mindMap) {
+                    setMindMap(fetchedMindMap);
+                    setNodes(fetchedMindMap.mindMap.initialNodes || []);
+                    setEdges(fetchedMindMap.mindMap.initialEdges || []);
+                } else {
+                    setMindMap(null);
+                    setNodes([]);
+                    setEdges([]);
+                }
+            } catch (error: any) {
+                console.error('Error fetching mind map:', error);
                 setMindMap(null);
                 setNodes([]);
                 setEdges([]);
             }
         };
         if (user) {
-            console.log("Fetching MindMap for ID:", id);
             fetchMindMap();
         }
     }, [user, id]);
 
-
+    // Fit View on Node/Edge Changes
     useEffect(() => {
         fitView();
     }, [nodes, edges, fitView]);
 
+    // History Management
+    const saveHistory = useCallback(() => {
+        setHistory((prevHistory) => {
+            const newHistory = [...prevHistory.slice(0, historyIndex + 1), { nodes: nodes, edges: edges }];
+            return newHistory.slice(-10);
+        });
+        setHistoryIndex((prevIndex) => Math.min(prevIndex + 1, 9));
+    }, [nodes, edges, historyIndex]);
+
+    const handleUndo = useCallback(() => {
+        if (historyIndex > 0) {
+            setHistoryIndex((prevIndex) => prevIndex - 1);
+            setNodes(history[historyIndex - 1].nodes);
+            setEdges(history[historyIndex - 1].edges);
+        }
+    }, [history, historyIndex]);
+
+    const handleRedo = useCallback(() => {
+        if (historyIndex < history.length - 1) {
+            setHistoryIndex((prevIndex) => prevIndex + 1);
+            setNodes(history[historyIndex + 1].nodes);
+            setEdges(history[historyIndex + 1].edges);
+        }
+    }, [history, historyIndex]);
+
+    // Layout Handler
+    const handleLayout = useCallback(() => {
+        const newNodes = applyLayout(nodes, layout, edges);
+        setNodes(newNodes);
+        fitView();
+    }, [nodes, layout, edges, fitView]);
+
+    const handleLayoutChange = (newLayout: LayoutType) => {
+        setLayout(newLayout);
+        handleLayout();
+    };
+
+    // Save History on Node/Edge Changes
+    useEffect(() => {
+        saveHistory();
+    }, [nodes, edges, saveHistory]);
+
+    // Delete Selected Nodes and Edges
+    const handleDeleteSelected = useCallback(() => {
+        setNodes((nds) => nds.filter((node) => !node.selected));
+        setEdges((eds) => eds.filter((edge) => !edge.selected));
+        setSelectedNodes([]);
+    }, []);
+
+    // Add New Node
+    const handleAddNode = useCallback(() => {
+        const newId = `node-${Date.now()}`;
+        const newNode = {
+            id: newId,
+            type: 'custom',
+            position: { x: 0, y: 0 },
+            data: { label: 'New Node' },
+            style: {
+                backgroundColor: nodeColor,
+                borderColor: borderColor,
+                color: textColor,
+                borderRadius: nodeShape === 'circle' ? '50%' : '0%',
+                borderWidth: `${borderWidth}px`,
+                fontSize: `${fontSize}px`,
+            },
+        };
+        setNodes((nds) => nds.concat(newNode));
+    }, [nodeColor, borderColor, textColor, nodeShape, borderWidth, fontSize]);
+
+    // Handle Node Selection
+    const handleNodeSelect = useCallback((selected: Node[]) => {
+        setSelectedNodes(selected);
+        if (selected.length === 1) {
+            setNodeColor(selected[0].style?.backgroundColor || 'white');
+            setBorderColor(selected[0].style?.borderColor || 'black');
+            setTextColor(selected[0].style?.color || 'black');
+            setNodeShape(selected[0].style?.borderRadius === '50%' ? 'circle' : 'square');
+            setBorderWidth(selected[0].style?.borderWidth ? parseInt(selected[0].style.borderWidth, 10) : 2);
+            setFontSize(selected[0].style?.fontSize ? parseInt(selected[0].style.fontSize, 10) : 14);
+        }
+    }, []);
+
+    // Apply Styles to Selected Nodes
+    const applyStylesToSelectedNodes = useCallback(() => {
+        setNodes(prevNodes =>
+            prevNodes.map(node => {
+                if (selectedNodes.find(selectedNode => selectedNode.id === node.id)) {
+                    return {
+                        ...node,
+                        style: {
+                            ...node.style,
+                            backgroundColor: nodeColor,
+                            borderColor: borderColor,
+                            color: textColor,
+                            borderRadius: nodeShape === 'circle' ? '50%' : '0%',
+                            borderWidth: `${borderWidth}px`,
+                            fontSize: `${fontSize}px`,
+                        }
+                    };
+                }
+                return node;
+            })
+        );
+    }, [selectedNodes, nodeColor, borderColor, textColor, nodeShape, borderWidth, fontSize]);
 
 
+    // Theme Change Handler
+    const handleThemeChange = (theme: string) => {
+        setTheme(theme);
+    };
+
+    const handleMapStyleChange = (style: MapStyle) => {
+        setMapStyle(style);
+        // Apply style changes here, e.g., change colors, fonts, etc.
+        switch (style) {
+            case 'modern':
+                setNodeColor('white');
+                setBorderColor('black');
+                setTextColor('black');
+                setFontSize(14);
+                break;
+            case 'classic':
+                setNodeColor('#f0e68c'); // Khaki
+                setBorderColor('#b8860b'); // Dark Goldenrod
+                setTextColor('black');
+                setFontSize(12);
+                break;
+            case 'dark':
+                setNodeColor('#2d3748'); // Dark Gray
+                setBorderColor('#cbd5e0'); // Gray 300
+                setTextColor('white');
+                setFontSize(14);
+                break;
+            case 'handDrawn':
+                setNodeColor('white');
+                setBorderColor('black');
+                setTextColor('black');
+                setFontSize(16);
+                break;
+            default:
+                setNodeColor('white');
+                setBorderColor('black');
+                setTextColor('black');
+                setFontSize(14);
+        }
+    };
+
+    // Render
     return (
         <div className="lexigen-bg w-screen h-screen">
             <Sidebar />
-            <div className="absolute w-5/6 right-0 top-20 bottom-0 p-5 flex flex-col items-center gap-y-5">
-                <h1 className="text-sky-200 text-3xl font-semibold text-center">Create your Mind map</h1>
-                <div>
-                  editing
+            <div className="absolute w-5/6 right-0 top-20 bottom-20 p-5 flex flex-col items-center gap-y-5">
+                <h1 className="text-sky-200 text-3xl font-semibold text-center">
+                    {mindMap?.title || "Create your Mind Map"}
+                </h1>
+                <div className="flex gap-2">
+                    <Button onClick={handleUndo} disabled={historyIndex === 0}><Undo className="h-4 w-4 mr-2" />Undo</Button>
+                    <Button onClick={handleRedo} disabled={historyIndex === history.length - 1}><Redo className="h-4 w-4 mr-2" />Redo</Button>
+                    <Button onClick={() => handleLayoutChange('grid')} className={cn(layout === 'grid' && 'bg-blue-500 text-white')}>
+                        <CircleDot className="h-4 w-4 mr-2" />Grid
+                    </Button>
+                    <Button onClick={() => handleLayoutChange('horizontal')} className={cn(layout === 'horizontal' && 'bg-blue-500 text-white')}>
+                        <ArrowRightCircle className="h-4 w-4 mr-2 rotate-90" />Horizontal
+                    </Button>
+                    <Button onClick={() => handleLayoutChange('vertical')} className={cn(layout === 'vertical' && 'bg-blue-500 text-white')}>
+                        <ArrowRightCircle className="h-4 w-4 mr-2" />Vertical
+                    </Button>
+                    <Button onClick={() => handleLayoutChange('radial')} className={cn(layout === 'radial' && 'bg-blue-500 text-white')}>
+                        <CircleDot className="h-4 w-4 mr-2" />Radial
+                    </Button>
+                    <Button onClick={() => handleLayoutChange('hierarchy')} className={cn(layout === 'hierarchy' && 'bg-blue-500 text-white')}>
+                        <Trees className="h-4 w-4 mr-2" />Hierarchy
+                    </Button>
+                    <Button onClick={handleLayout}><LayoutDashboard className="h-4 w-4 mr-2" />Layout</Button>
+                    <Button onClick={handleDeleteSelected}><Trash className="h-4 w-4 mr-2" />Delete Selected</Button>
+                    <Button onClick={handleAddNode}><Plus className="h-4 w-4 mr-2" />Add Node</Button>
                 </div>
                 <div className="relative w-full h-full">
-                  <div className="absolute w-full h-full bg-white rounded-lg opacity-25">
-
-                  </div>
-                  <div className="  w-full h-full" ref={reactFlowWrapper}>
-                      {/* Debugging Logs - VERY IMPORTANT - Keep these for now */}
-                      {/* <pre>Nodes State (before ReactFlow): {JSON.stringify(nodes, null, 2)}</pre>
-                      <pre>Edges State (before ReactFlow): {JSON.stringify(edges, null, 2)}</pre> */}
-
-                      <ReactFlow
-                          nodes={nodes}
-                          edges={edges}
-                          onNodesChange={onNodesChange}
-                          onEdgesChange={onEdgesChange}
-                          onConnect={onConnect}
-                          onLoad={setRfInstance}
-                          fitView={false}
-                          // style={{ backgroundColor: '#f0f0f0' }}
-                      >
-                          {/* <Background color="#aaa" variant={'dots'} size={3} /> */}
-                          <Controls />
-                      </ReactFlow>
-                  </div>
-
+                    <div className="absolute w-full h-full bg-white rounded-lg opacity-25"></div>
+                    <div className="w-full h-full" ref={reactFlowWrapper}>
+                        <ReactFlow
+                            nodes={nodes}
+                            edges={edges}
+                            onNodesChange={onNodesChange}
+                            onEdgesChange={onEdgesChange}
+                            onConnect={onConnect}
+                            onLoad={setRfInstance}
+                            fitView={false}
+                            connectionMode={ConnectionMode.Loose}
+                            onNodeDragStop={saveHistory}
+                            onEdgeUpdateEnd={saveHistory}
+                            nodeTypes={{
+                                custom: EditableNode,
+                            }}                            
+                            onNodeClick={(_, node) => handleNodeSelect([node])}                            
+                            onNodesChange={(changes) => { onNodesChange(changes); if (changes.some(c => c.type === 'select' && !c.selected)) setSelectedNodes([])}}
+                        >
+                            <Background color="#aaa" size={3} />
+                            <Controls />
+                            <MiniMap />
+                        </ReactFlow>
+                    </div>
                 </div>
+            </div>
+
+            {/* Bottom Navbar */}
+            <div className="fixed bottom-0 left-0 right-0 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-2 flex flex-wrap items-center justify-center gap-2 z-50">
+                <div className="flex items-center gap-1">
+                    <Label htmlFor="node-color" className="text-xs sm:text-sm">Node Color:</Label>
+                    <Input
+                        id="node-color"
+                        type="color"
+                        value={nodeColor}
+                        onChange={(e) => setNodeColor(e.target.value)}
+                        className="w-8 h-8 sm:w-10 sm:h-10 p-0 border-0 cursor-pointer"
+                        title="Node Color"
+                    />
+                </div>
+                <div className="flex items-center gap-1">
+                    <Label htmlFor="border-color" className="text-xs sm:text-sm">Border Color:</Label>
+                    <Input
+                        id="border-color"
+                        type="color"
+                        value={borderColor}
+                        onChange={(e) => setBorderColor(e.target.value)}
+                        className="w-8 h-8 sm:w-10 sm:h-10 p-0 border-0 cursor-pointer"
+                        title="Border Color"
+                    />
+                </div>
+                <div className="flex items-center gap-1">
+                    <Label htmlFor="text-color" className="text-xs sm:text-sm">Text Color:</Label>
+                    <Input
+                        id="text-color"
+                        type="color"
+                        value={textColor}
+                        onChange={(e) => setTextColor(e.target.value)}
+                        className="w-8 h-8 sm:w-10 sm:h-10 p-0 border-0 cursor-pointer"
+                        title="Text Color"
+                    />
+                </div>
+                <div className="flex items-center gap-1">
+                    <span className="text-xs sm:text-sm">Shape:</span>
+                    <Button
+                        variant={nodeShape === 'circle' ? 'default' : 'outline'}
+                        size="icon"
+                        onClick={() => setNodeShape('circle')}
+                        title="Circle"
+                        className="h-7 w-7 sm:h-8 sm:w-8"
+                    >
+                        <Circle className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant={nodeShape === 'square' ? 'default' : 'outline'}
+                        size="icon"
+                        onClick={() => setNodeShape('square')}
+                        title="Square"
+                        className="h-7 w-7 sm:h-8 sm:w-8"
+                    >
+                        <Square className="h-4 w-4"/>
+                    </Button>
+                </div>
+                <div className="flex items-center gap-1">
+                    <Label htmlFor="bord</selecter-width" className="text-xs sm:text-sm">Border Width:</Label>
+                    <Slider
+                        id="border-width"
+                        min={1}
+                        max={5}
+                        step={1}
+                        value={[borderWidth]}
+                        onValueChange={(value) => setBorderWidth(value[0])}
+                        className="w-16 sm:w-20"
+                    />
+                    <span className="text-xs sm:text-sm">{borderWidth}px</span>
+                </div>
+                <div className="flex items-center gap-1">
+                    <Label htmlFor="font-size" className="text-xs sm:text-sm">Font Size:</Label>
+                    <Slider
+                        id="font-size"
+                        min={10}
+                        max={24}
+                        step={1}
+                        value={[fontSize]}
+                        onValueChange={(value) => setFontSize(value[0])}
+                        className="w-16 sm:w-20"
+                    />
+                    <span className="text-xs sm:text-sm">{fontSize}px</span>
+                </div>
+                <Button onClick={applyStylesToSelectedNodes} className="text-xs sm:text-sm">Apply Styles</Button>
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" className="text-xs sm:text-sm">
+                            <Palette className="h-4 w-4 mr-2" />Map Style
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Select Map Style</DialogTitle>
+                            <DialogDescription>
+                                Choose a style for your mind map.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="map-style" className="text-right">
+                                    Style
+                                </Label>
+                                <Select onValueChange={handleMapStyleChange} value={mapStyle}>
+                                    <SelectTrigger id="map-style" className="w-full">
+                                        <SelectValue placeholder="Select a style" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="modern">Modern</SelectItem>
+                                        <SelectItem value="classic">Classic</SelectItem>
+                                        <SelectItem value="dark">Dark</SelectItem>
+                                        <SelectItem value="handDrawn">Hand Drawn</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" className="text-xs sm:text-sm">
+                            <Palette className="h-4 w-4 mr-2" />Theme
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Select Theme</DialogTitle>
+                            <DialogDescription>
+                                Choose a theme for the application.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="theme" className="text-right">
+                                    Theme
+                                </Label>
+                                <Select onValueChange={handleThemeChange} defaultValue="system">
+                                    <SelectTrigger id="theme" className="w-full">
+                                        <SelectValue placeholder="Select a theme" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="light">Light</SelectItem>
+                                        <SelectItem value="dark">Dark</SelectItem>
+                                        <SelectItem value="system">System</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
         </div>
     );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// "use client";
-
-// import React, {
-//     useState,
-//     useCallback,
-//     useEffect,
-//     useRef,
-//     MouseEvent as ReactMouseEvent,
-// } from "react";
-// import "reactflow/dist/style.css";
-// import Sidebar from "@/components/Sidebar";
-// import { useAuth } from "@clerk/nextjs";
-// import { getUserByClerkId } from "@/lib/actions/user.actions";
-// import { getMindMap } from "@/lib/actions/mindmaps.actions";
-// import {
-//     ReactFlow,
-//     useNodesState,
-//     useEdgesState,
-//     addEdge,
-//     Background,
-//     Controls,
-//     MiniMap,
-//     getRectOfNodes,
-//     getTransformForBounds,
-//     Node,
-//     Edge,
-//     Connection,
-//     ConnectionMode,
-//     ReactFlowProvider,
-// } from "reactflow";
-
-// // --- Types ---
-// interface User {
-//     _id: string;
-//     clerkId: string;
-//     email: string;
-//     username: string;
-// }
-
-// interface MindMapData {
-//     initialNodes: any[];
-//     initialEdges: any[];
-// }
-
-// interface MindMapResponse {
-//     _id: string;
-//     title: string;
-//     mindMap?: MindMapData;
-// }
-
-// // --- Navbar Component ---
-// // Provides controls for editing nodes and edges, and mode switching.
-// const Navbar = ({
-//     mode,
-//     setMode,
-//     nodeStyle,
-//     setNodeStyle,
-//     selectedNode,
-//     setNodes,
-//     nodes,
-//     selectedEdge,
-//     setEdges,
-//     edges,
-//     onToggleResize,
-// }: {
-//     mode: "edit" | "connect" | "drag" | "resize";
-//     setMode: (mode: "edit" | "connect" | "drag" | "resize") => void;
-//     nodeStyle: any;
-//     setNodeStyle: (style: any) => void;
-//     selectedNode: Node | null;
-//     setNodes: (nodes: Node[]) => void;
-//     nodes: Node[];
-//     selectedEdge: Edge | null;
-//     setEdges: (edges: Edge[]) => void;
-//     edges: Edge[];
-//     onToggleResize: () => void;
-// }) => {
-//     // Helper function to apply active class based on current mode
-//     const getModeButtonClass = (buttonMode: string) => {
-//         return `px-3 py-1 rounded text-white ${mode === buttonMode ? 'bg-sky-700' : 'bg-sky-600 hover:bg-sky-500'}`;
-//     };
-
-//     return (
-//         <div className="w-full bg-white/20 backdrop-blur-sm p-4 rounded-lg flex flex-wrap items-center gap-4">
-//             <button
-//                 className={getModeButtonClass("edit")}
-//                 onClick={() => setMode("edit")}
-//             >
-//                 Edit Mode
-//             </button>
-//             <button
-//                 className={getModeButtonClass("connect")}
-//                 onClick={() => setMode("connect")}
-//             >
-//                 Connect Mode
-//             </button>
-//             <button
-//                 className={getModeButtonClass("drag")}
-//                 onClick={() => setMode("drag")}
-//             >
-//                 Drag Mode
-//             </button>
-//             <button
-//                 className={getModeButtonClass("resize")}
-//                 onClick={onToggleResize}
-//             >
-//                 Toggle Resize
-//             </button>
-
-//             {selectedNode ? (
-//                 <>
-//                     {/* Node editing controls */}
-//                     <input
-//                         type="text"
-//                         className="bg-white/30 rounded px-3 py-1 text-slate-900"
-//                         placeholder="Node Label"
-//                         value={selectedNode.data.label || ""}
-//                         onChange={(e) =>
-//                             setNodes(
-//                                 nodes.map((node) =>
-//                                     node.id === selectedNode.id
-//                                         ? {
-//                                             ...node,
-//                                             data: { ...node.data, label: e.target.value },
-//                                         }
-//                                         : node
-//                                 )
-//                             )
-//                         }
-//                     />
-//                     <input
-//                         type="color"
-//                         className="w-8 h-8 rounded"
-//                         title="Background Color"
-//                         value={selectedNode.style?.backgroundColor || "#ffffff"}
-//                         onChange={(e) =>
-//                             setNodes(
-//                                 nodes.map((node) =>
-//                                     node.id === selectedNode.id
-//                                         ? {
-//                                             ...node,
-//                                             style: {
-//                                                 ...node.style,
-//                                                 backgroundColor: e.target.value,
-//                                                 width: nodeStyle.width,
-//                                                 height: nodeStyle.height,
-//                                             },
-//                                         }
-//                                         : node
-//                                 )
-//                             )
-//                         }
-//                     />
-//                     <input
-//                         type="color"
-//                         className="w-8 h-8 rounded"
-//                         title="Border Color"
-//                         value={selectedNode.style?.borderColor || "#000000"}
-//                         onChange={(e) =>
-//                             setNodes(
-//                                 nodes.map((node) =>
-//                                     node.id === selectedNode.id
-//                                         ? { ...node, style: { ...node.style, borderColor: e.target.value } }
-//                                         : node
-//                                 )
-//                             )
-//                         }
-//                     />
-//                     <input
-//                         type="color"
-//                         className="w-8 h-8 rounded"
-//                         title="Text Color"
-//                         value={selectedNode.style?.color || "#000000"}
-//                         onChange={(e) =>
-//                             setNodes(
-//                                 nodes.map((node) =>
-//                                     node.id === selectedNode.id
-//                                         ? { ...node, style: { ...node.style, color: e.target.value } }
-//                                         : node
-//                                 )
-//                             )
-//                         }
-//                     />
-//                     {/* The size input here still exists as a fallback */}
-//                     <input
-//                         type="number"
-//                         className="bg-white/30 rounded px-3 py-1 text-slate-900 w-20"
-//                         placeholder="Size"
-//                         min="50"
-//                         max="500"
-//                         value={selectedNode.style?.width || 150}
-//                         onChange={(e) => {
-//                             const size = parseInt(e.target.value);
-//                             setNodes(
-//                                 nodes.map((node) =>
-//                                     node.id === selectedNode.id
-//                                         ? {
-//                                             ...node,
-//                                             style: { ...node.style, width: size, height: size },
-//                                         }
-//                                         : node
-//                                 )
-//                             );
-//                         }}
-//                     />
-//                     <button
-//                         className="bg-red-500/80 text-white px-3 py-1 rounded"
-//                         onClick={() =>
-//                             setNodes(nodes.filter((node) => node.id !== selectedNode.id))
-//                         }
-//                     >
-//                         Delete Node
-//                     </button>
-//                 </>
-//             ) : (
-//                 <span className="text-slate-300">Select a node to edit</span>
-//             )}
-
-//             {selectedEdge ? (
-//                 <>
-//                     {/* Edge editing controls */}
-//                     <input
-//                         type="color"
-//                         className="w-8 h-8 rounded"
-//                         title="Edge Color"
-//                         value={selectedEdge.style?.stroke || "#00796b"}
-//                         onChange={(e) =>
-//                             setEdges(
-//                                 edges.map((edge) =>
-//                                     edge.id === selectedEdge.id
-//                                         ? { ...edge, style: { ...edge.style, stroke: e.target.value } }
-//                                         : edge
-//                                 )
-//                             )
-//                         }
-//                     />
-//                     <select
-//                         className="bg-white/30 rounded px-2 py-1"
-//                         value={selectedEdge.type || "default"}
-//                         onChange={(e) =>
-//                             setEdges(
-//                                 edges.map((edge) =>
-//                                     edge.id === selectedEdge.id
-//                                         ? { ...edge, type: e.target.value }
-//                                         : edge
-//                                 )
-//                             )
-//                         }
-//                     >
-//                         <option value="default">Default</option>
-//                         <option value="step">Step</option>
-//                         <option value="smoothstep">Smooth</option>
-//                     </select>
-//                     <button
-//                         className="bg-red-500/80 text-white px-3 py-1 rounded"
-//                         onClick={() =>
-//                             setEdges(edges.filter((edge) => edge.id !== selectedEdge.id))
-//                         }
-//                     >
-//                         Delete Edge
-//                     </button>
-//                 </>
-//             ) : (
-//                 <span className="text-slate-300">Select an edge to edit</span>
-//             )}
-//         </div>
-//     );
-// };
-
-// // --- ResizableOverlay Component ---
-// // When in resize mode and a node is selected, this overlay renders draggable handles.
-// // For simplicity, we implement a bottom-right handle.
-// const ResizableOverlay = ({
-//     selectedNode,
-//     onResize,
-// }: {
-//     selectedNode: Node;
-//     onResize: (width: number, height: number) => void;
-// }) => {
-//     const overlayRef = useRef<HTMLDivElement>(null);
-//     const [dragging, setDragging] = useState(false);
-//     const startSize = useRef({ width: selectedNode.style?.width ?? 150, height: selectedNode.style?.height ?? 150 });
-//     const startPos = useRef({ x: 0, y: 0 });
-
-//     const handleMouseDown = (e: ReactMouseEvent) => {
-//         e.stopPropagation();
-//         setDragging(true);
-//         startPos.current = { x: e.clientX, y: e.clientY };
-//         startSize.current = { width: selectedNode.style?.width ?? 150, height: selectedNode.style?.height ?? 150 };
-//     };
-
-//     const handleMouseMove = (e: MouseEvent) => {
-//         if (!dragging) return;
-//         const deltaX = e.clientX - startPos.current.x;
-//         const deltaY = e.clientY - startPos.current.y;
-//         const newWidth = Math.max(50, Number(startSize.current.width) + deltaX);
-//         const newHeight = Math.max(50, Number(startSize.current.height) + deltaY);
-//         onResize(newWidth, newHeight);
-//     };
-
-//     const handleMouseUp = () => {
-//         setDragging(false);
-//         window.removeEventListener("mousemove", handleMouseMove);
-//         window.removeEventListener("mouseup", handleMouseUp);
-//     };
-
-//     useEffect(() => {
-//         if (dragging) {
-//             window.addEventListener("mousemove", handleMouseMove);
-//             window.addEventListener("mouseup", handleMouseUp);
-//         }
-//         return () => {
-//             window.removeEventListener("mousemove", handleMouseMove);
-//             window.removeEventListener("mouseup", handleMouseUp);
-//         };
-//     }, [dragging, handleMouseMove, handleMouseUp]); // Add handleMouseMove, handleMouseUp to dependencies
-
-//     // Calculate overlay position based on node's position and size.
-//     const overlayStyle = {
-//         position: "absolute" as "absolute",
-//         left: selectedNode.position.x,
-//         top: selectedNode.position.y,
-//         width: selectedNode.style?.width || 150,
-//         height: selectedNode.style?.height || 150,
-//         border: "2px dashed #6366F1",
-//         pointerEvents: "none" as "none",
-//         zIndex: 10, // Ensure overlay is above nodes - **FIX for Overlay Position**
-//     };
-
-//     const handleStyle = {
-//         position: "absolute" as "absolute",
-//         right: -8,
-//         bottom: -8,
-//         width: 16,
-//         height: 16,
-//         backgroundColor: "#6366F1",
-//         cursor: "nwse-resize",
-//         pointerEvents: "all" as "all",
-//         zIndex: 11, // Ensure handle is above overlay
-//     };
-
-//     return (
-//         <div ref={overlayRef} style={overlayStyle}>
-//             <div style={handleStyle} onMouseDown={handleMouseDown} />
-//         </div>
-//     );
-// };
-
-// // --- Main Component ---
-// export default function App({ params }: { params: Promise<{ id: string }> }) {
-//     const { id } = React.use(params);
-//     const { isLoaded, isSignedIn, userId } = useAuth();
-//     const [user, setUser] = useState<User | null>(null);
-//     const [mindMap, setMindMap] = useState<MindMapResponse | null>(null);
-
-//     // Initialize nodes and edges (empty by default)
-//     const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
-//     const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
-
-//     const reactFlowWrapper = useRef<HTMLDivElement>(null);
-//     const [rfInstance, setRfInstance] = useState<any>(null);
-
-//     // Navbar state & editing selection
-//     const [selectedNode, setSelectedNode] = useState<any>(null);
-//     const [selectedEdge, setSelectedEdge] = useState<any>(null);
-//     const [mode, setMode] = useState<"edit" | "connect" | "drag" | "resize">("edit");
-//     const [resizeMode, setResizeMode] = useState(false);
-
-//     // Node default style state used in creation and updating
-//     const [nodeStyle, setNodeStyle] = useState({
-//         backgroundColor: "#ffffff",
-//         borderColor: "#000000",
-//         color: "#000000",
-//         width: 150,
-//         height: 150,
-//     });
-
-//     // Fit view after nodes/edges update
-//     const fitView = useCallback(() => {
-//         if (!rfInstance || !reactFlowWrapper.current || nodes.length === 0) return;
-//         const nodesBounds = getRectOfNodes(nodes);
-//         const wrapperBounds = reactFlowWrapper.current.getBoundingClientRect();
-//         const transform = getTransformForBounds(
-//             nodesBounds,
-//             wrapperBounds.width,
-//             wrapperBounds.height,
-//             0.7,
-//             2
-//         );
-//         rfInstance.setTransform(transform);
-//     }, [rfInstance, nodes]);
-
-//     // Fetch user data
-//     useEffect(() => {
-//         const fetchUser = async () => {
-//             const userData = userId ? await getUserByClerkId(userId) : null;
-//             setUser(userData?.[0] || null);
-//             console.log("user:", userData?.[0]);
-//         };
-//         fetchUser();
-//     }, [userId]);
-
-//     // Fetch mind map data from API and set nodes/edges accordingly
-//     useEffect(() => {
-//         const fetchMindMap = async () => {
-//             const fetchedMindMap = user ? await getMindMap(id) : null;
-//             console.log("MindMap data fetched from API:", fetchedMindMap);
-//             if (fetchedMindMap && fetchedMindMap.mindMap) {
-//                 setMindMap(fetchedMindMap);
-//                 setNodes(fetchedMindMap.mindMap.initialNodes || []);
-//                 setEdges(fetchedMindMap.mindMap.initialEdges || []);
-//                 console.log("Nodes updated:", fetchedMindMap.mindMap.initialNodes);
-//                 console.log("Edges updated:", fetchedMindMap.mindMap.initialEdges);
-//             } else {
-//                 console.log("No mind map data available from API.");
-//                 setMindMap(null);
-//                 setNodes([]);
-//                 setEdges([]);
-//             }
-//         };
-//         if (user) {
-//             console.log("Fetching MindMap for ID:", id);
-//             fetchMindMap();
-//         }
-//     }, [user, id, setNodes, setEdges]);
-
-//     // Fit view when nodes or edges change
-//     useEffect(() => {
-//         fitView();
-//     }, [nodes, edges, fitView]);
-
-//     // When a node is clicked, mark it as selected for editing
-//     const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-//         setSelectedNode(node);
-//         setSelectedEdge(null);
-//     }, []);
-
-//     // When an edge is clicked, mark it as selected for editing
-//     const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
-//         setSelectedEdge(edge);
-//         setSelectedNode(null);
-//     }, []);
-
-//     // Connection handler
-//     const onConnect = useCallback(
-//         (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-//         [setEdges]
-//     );
-
-//     // Toggle resize mode (when active, nodes become resizable via overlay)
-//     const onToggleResize = useCallback(() => {
-//         setResizeMode((prev) => !prev);
-//         setMode((prev) => (prev === "resize" ? "edit" : "resize"));
-//     }, []);
-
-//     // Update selected node size when resizing overlay changes
-//     const onResize = useCallback(
-//         (newWidth: number, newHeight: number) => {
-//             if (!selectedNode) return;
-//             setNodes((nds: Node[]) =>
-//                 nds.map((node) =>
-//                     node.id === selectedNode.id
-//                         ? {
-//                             ...node,
-//                             style: {
-//                                 ...node.style,
-//                                 width: newWidth,
-//                                 height: newHeight,
-//                             },
-//                         }
-//                         : node
-//                 )
-//             );
-//             // Log the changes for debugging
-//             console.log("Resized node:", selectedNode.id, "to", newWidth, newHeight);
-//         },
-//         [selectedNode, setNodes]
-//     );
-
-
-//     return (
-//         <div className="lexigen-bg w-screen h-screen relative">
-//             <Sidebar />
-//             <div className="absolute w-5/6 right-0 top-20 bottom-0 p-5 flex flex-col items-center gap-y-5">
-//                 <h1 className="text-sky-200 text-3xl font-semibold text-center">
-//                     Create your Mind Map
-//                 </h1>
-//                 <Navbar
-//                     mode={mode}
-//                     setMode={setMode}
-//                     nodeStyle={nodeStyle}
-//                     setNodeStyle={setNodeStyle}
-//                     selectedNode={selectedNode}
-//                     setNodes={setNodes}
-//                     nodes={nodes}
-//                     selectedEdge={selectedEdge}
-//                     setEdges={setEdges}
-//                     edges={edges}
-//                     onToggleResize={onToggleResize}
-//                 />
-//                 <div className="w-full h-full relative" ref={reactFlowWrapper}> {/* Make ReactFlow wrapper relative */}
-//                     <ReactFlow
-//                         nodes={nodes}
-//                         edges={edges}
-//                         onNodesChange={onNodesChange}
-//                         onEdgesChange={onEdgesChange}
-//                         onConnect={onConnect}
-//                         onNodeClick={onNodeClick}
-//                         onEdgeClick={onEdgeClick}
-//                         onLoad={setRfInstance}
-//                         fitView
-//                         connectionMode={mode === "connect" ? ConnectionMode.Strict : ConnectionMode.Loose}
-//                         panOnDrag={mode === "drag"}
-//                         nodesDraggable={mode !== "resize"} // disable dragging in resize mode
-//                         nodesConnectable={mode === "connect"}
-//                     >
-//                         <Background />
-//                         <Controls />
-//                         <MiniMap />
-//                     </ReactFlow>
-//                     {/* Render resizable overlay if in resize mode and a node is selected */}
-//                     {resizeMode && selectedNode && (
-//                         <ResizableOverlay selectedNode={selectedNode} onResize={onResize} />
-//                     )}
-//                 </div>
-//             </div>
-//         </div>
-//     );
-// }
-
-// export function MindMapEditor(props: { mindMapData: MindMapData }) {
-//     return (
-//         <ReactFlowProvider>
-//             <App params={Promise.resolve({ id: "dummy-id" })} />
-//         </ReactFlowProvider>
-//     );
-// }
