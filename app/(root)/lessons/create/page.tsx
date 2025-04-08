@@ -764,21 +764,10 @@ export default function CreateLessonPage() {
           description: data.description,
           owner: userID,
           createdAt: new Date(),
-          lesson: {
-            topic: finalLesson.topic,
-            language: finalLesson.language,
-            index: finalLesson.index,
-            lessons: finalLesson.lessons.map((lesson: any) => ({
-              indexTitle: lesson.indexTitle,
-              item: lesson.item,
-              simplified: lesson.simplified,
-              detailed: lesson.detailed,
-              schematic: lesson.schematic,
-              indexNumber: lesson.indexNumber,
-              itemNumber: lesson.itemNumber,
-              mindMap: lesson.mindMap || null
-            }))
-          },
+          topic: finalLesson.topic,
+          language: finalLesson.language,
+          index: finalLesson.index,
+            lessons: tempLessons,
           history: []
         };
         
