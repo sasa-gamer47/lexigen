@@ -35,7 +35,6 @@ export type LessonContent = {
     indexNumber: number;
     itemNumber: number;
     mindMap?: any;
-    content:
   }[];
 }
 
