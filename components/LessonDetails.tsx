@@ -129,12 +129,13 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
             setEdges(newEdges);
         } else {
             console.warn("Attempted to process invalid mindMapData:", mindMapData);
-            setNodes([]);
-            setEdges([]);
+            setNodes([{id: 'no-data', type: 'default', position: { x: 0, y: 0 }, data: { label: 'No data' }}]);
+            setEdges([])
         }
     }, []);
 
-    const handleFitView = () => {
+    const handleFitView = (viewport: Viewport) => {
+        console.log("viewport", viewport)
         setViewport({
             x: 0,
             y: 0,
@@ -357,11 +358,11 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
                         nodesConnectable={false}
                         elementsSelectable={true}
                         className="bg-gray-700/50 rounded"
-                        onViewportChange={handleFitView}
                         nodes={nodes}
                         edges={edges}
                       >
                         <Background color="#555" gap={16} />
+                        <button onClick={handleFitView} className="absolute top-2 left-2 bg-gray-600 text-white px-2 py-1 rounded-md">Fit View</button>
                         <Controls />
                       </ReactFlow>
                     ) : (
