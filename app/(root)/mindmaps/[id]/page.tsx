@@ -173,13 +173,13 @@ const applyLayout = (nodes: Node[], layout: LayoutType, edges: Edge[]): Node[] =
 };
 
 // Custom Node Component
-const EditableNode: React.FC<NodeProps> = ({ data, id, selected, style, isConnectable }) => {
+const EditableNode: React.FC<NodeProps> = ({ data, id, selected }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [label, setLabel] = useState(data?.label || 'Node');
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        setLabel(data?.label || 'Node');
+        setLabel(data?.label || 'Node')
     }, [data]);
 
     useEffect(() => {
@@ -221,7 +221,7 @@ const EditableNode: React.FC<NodeProps> = ({ data, id, selected, style, isConnec
             cursor: 'pointer',
             boxShadow: selected ? '0 0 5px 2px rgba(0, 128, 255, 0.5)' : 'none',
         };
-        const combinedStyle = { ...baseStyle, ...style };
+        const combinedStyle = { ...baseStyle, ...data.style };
         return combinedStyle;
     };
 
