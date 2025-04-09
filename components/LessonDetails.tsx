@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, MouseEvent } from "react";
 import { Lesson } from "@/types";
 import {
   Card,
@@ -135,8 +135,7 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
         }
     }, []);
 
-    const handleFitView = (viewport: Viewport) => {
-        console.log("viewport", viewport)
+    const handleFitView = (event: MouseEvent<HTMLButtonElement>) => {
         setViewport({
             x: 0,
             y: 0,
@@ -363,7 +362,7 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
                         edges={edges}
                       >
                         <Background color="#555" gap={16} />
-                        <button onClick={handleFitView} className="absolute top-2 left-2 bg-gray-600 text-white px-2 py-1 rounded-md">Fit View</button>
+                        <button onClick={handleFitView} className="absolute top-2 left-2 bg-gray-600 text-white px-2 py-1 rounded-md">Fit View</button>                        
                         <Controls />
                       </ReactFlow>
                     ) : (
