@@ -57,6 +57,6 @@ export type CreateLessonParams = {
   topic: string
   language: string
   index: any
-  lesson: LessonContent
+  lessons: LessonContent
   history: any[]
 }
