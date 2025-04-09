@@ -429,7 +429,7 @@ export default function App({ params }: { params: Promise<{ id: string }> }) {
                 borderColor: borderColor,
                 color: textColor,
                 borderRadius: nodeShape === 'circle' ? '50%' : '0%',
-                borderWidth: `${borderWidth}px`,
+                borderWidth: `${Number(borderWidth)}px`,
                 fontSize: `${fontSize}px`,
             },
         };
@@ -444,9 +444,9 @@ export default function App({ params }: { params: Promise<{ id: string }> }) {
             setBorderColor(selected[0].style?.borderColor || 'black');
             setTextColor(selected[0].style?.color || 'black');
             setNodeShape(selected[0].style?.borderRadius === '50%' ? 'circle' : 'square');
-            setBorderWidth(selected[0].style?.borderWidth ? parseInt(selected[0].style.borderWidth, 10) : 2);
+            setBorderWidth(selected[0].style?.borderWidth ? parseInt(Number(selected[0].style.borderWidth, 10)) : 2);
             setFontSize(selected[0].style?.fontSize ? parseInt(selected[0].style.fontSize, 10) : 14);
-        }
+        } 
     }, []);
 
     // Apply Styles to Selected Nodes
