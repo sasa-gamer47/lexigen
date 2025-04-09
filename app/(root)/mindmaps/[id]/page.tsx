@@ -445,7 +445,7 @@ export default function App({ params }: { params: Promise<{ id: string }> }) {
             setTextColor(selected[0].style?.color || 'black');
             setNodeShape(selected[0].style?.borderRadius === '50%' ? 'circle' : 'square');
             setBorderWidth(selected[0].style?.borderWidth ? parseInt(selected[0].style.borderWidth as string, 10) : 2);
-            setFontSize(selected[0].style?.fontSize ? parseInt(selected[0].style.fontSize, 10) : 14);
+            setFontSize(selected[0].style?.fontSize ? parseInt(selected[0].style.fontSize as string, 10) : 14);
         } 
     }, []);
 
