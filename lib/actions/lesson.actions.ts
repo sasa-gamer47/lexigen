@@ -21,7 +21,7 @@ export async function createLesson(params: CreateLessonParams) {
     
     // Remove duplicates from flattenedLessons based on a unique identifier (e.g., 'id' or 'name')
     const uniqueLessons = flattenedLessons.filter((lesson: any, index: any, self: any) =>
-      index === self.findIndex((l) => l.id === lesson.id)
+      index === self.findIndex((l: any) => l.id === lesson.id)
     );
     // ----------------------------------------
 
