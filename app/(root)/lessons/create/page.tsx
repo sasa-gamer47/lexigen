@@ -42,7 +42,7 @@ import ReactFlow, {
 import "reactflow/dist/base.css";
 import { Badge } from "@/components/ui/badge";
 
-import { Prism as SyntaxHighlightser } from "react-syntax-highlighter";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import vs from "react-syntax-highlighter/dist/esm/styles/prism/vs";
 import dark from "react-syntax-highlighter/dist/esm/styles/prism/dark";
 import { createLesson } from '@/lib/actions/lesson.actions';
