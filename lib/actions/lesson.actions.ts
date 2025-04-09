@@ -1,11 +1,11 @@
 // lessons.actions.ts
 "use server"
 
-import { connectToDatabase } from "@/database/index";
-import Lesson from "@/database/models/lesson";
-import User from "@/database/models/user.model"; // Assuming you have this model
+import { connectToDatabase } from "@/lib/database";
+import Lesson from "@/lib/database/models/lesson.model";
+import User from "@/lib/database/models/user.model"; // Assuming you have this model
 import { revalidatePath } from "next/cache";
-import { CreateLessonParams, LessonResponse } from "../types"; // Assuming these types match your input structure
+import { CreateLessonParams } from "@/types"; // Assuming these types match your input structure
 
 export async function createLesson(params: CreateLessonParams) {
   try {
@@ -21,7 +21,7 @@ export async function createLesson(params: CreateLessonParams) {
     
     // Remove duplicates from flattenedLessons based on a unique identifier (e.g., 'id' or 'name')
     const uniqueLessons = flattenedLessons.filter((lesson, index, self) =>
-      index === self.findIndex((l) => l.id === lesson.id || l._id === lesson._id)
+      index === self.findIndex((l) => l.id === lesson.id)
     );
     // ----------------------------------------
 
@@ -36,7 +36,7 @@ export async function createLesson(params: CreateLessonParams) {
       topic,
       language,
       index, 
-      lessons: uniqueLessons, // Use the flattened array here
+      lessons: flattenedLessons, // Use the flattened array here
       history: history || [],
       createdAt: new Date() // Mongoose handles this as BSON Date
     });
