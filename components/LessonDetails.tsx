@@ -20,7 +20,7 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   Node as ReactFlowNode,
-  Edge, useReactFlow,
+  Edge, useReactFlow, Viewport,
 } from "reactflow";
 import "reactflow/dist/base.css";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface LessonDetailsProps {
   lesson: Lesson;
+}
+
+interface MindMap {
+    id: string;
+    name: string;
 }
 
 const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
@@ -134,11 +139,11 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
     };
 
     useMemo(() => {
-        if (lesson?.mindMap && typeof lesson.mindMap === 'object' && lesson.mindMap.id) {
-            handleMindMapChange(lesson.mindMap)
+        if (lesson?.mindMap && typeof lesson.mindMap === 'object' && (lesson.mindMap as MindMap).id) {
+            handleMindMapChange(lesson.mindMap as MindMap)
         } else {
             console.warn("lesson.mindMap is not valid:", lesson.mindMap);
-        }
+        } 
     }, [lesson?.mindMap, handleMindMapChange]);
 
   return (
@@ -348,6 +353,7 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
                         nodesConnectable={false}
                         elementsSelectable={true}
                         className="bg-gray-700/50 rounded"
+                        onViewportChange={handleFitView}
                         nodes={nodes}
                         edges={edges}
                       >
