@@ -23,10 +23,6 @@ export type CreateQuizParams = {
 }
 
 export type LessonContent = {
-  topic: string;
-  language: string;
-  index: string[][];
-  lessons: {
     indexTitle: string;
     item: string;
     simplified: string;
@@ -35,7 +31,6 @@ export type LessonContent = {
     indexNumber: number;
     itemNumber: number;
     mindMap?: any;
-  }[];
 }
 
 export type Lesson = {
@@ -43,7 +38,10 @@ export type Lesson = {
   title: string;
   description: string;
   owner: string;
-  lesson: LessonContent;
+  topic: string;
+  language: string;
+  index: string[][];
+  lessons: LessonContent;
   history: any[];
   createdAt: Date;
 }
