@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Lesson } from "@/types";
 import {
   Card,
@@ -34,6 +34,10 @@ interface LessonDetailsProps {
 interface MindMap {
     id: string;
     name: string;
+}
+
+interface LessonWithMindMap extends Lesson {
+    mindMap?: MindMap;
 }
 
 const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
@@ -139,12 +143,12 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
     };
 
     useMemo(() => {
-        if (lesson?.mindMap && typeof lesson.mindMap === 'object' && (lesson.mindMap as MindMap).id) {
-            handleMindMapChange(lesson.mindMap as MindMap)
+        if ((lesson as LessonWithMindMap)?.mindMap && typeof (lesson as LessonWithMindMap).mindMap === 'object' && ((lesson as LessonWithMindMap).mindMap as MindMap).id) {
+            handleMindMapChange((lesson as LessonWithMindMap).mindMap as MindMap)
         } else {
-            console.warn("lesson.mindMap is not valid:", lesson.mindMap);
+            console.warn("lesson.mindMap is not valid:", (lesson as LessonWithMindMap).mindMap);
         } 
-    }, [lesson?.mindMap, handleMindMapChange]);
+    }, [(lesson as LessonWithMindMap)?.mindMap, handleMindMapChange]);
 
   return (
     <div className="w-full flex flex-col items-center gap-y-5">
