@@ -42,7 +42,7 @@ import ReactFlow, {
 import "reactflow/dist/base.css";
 import { Badge } from "@/components/ui/badge";
 
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { Prism as SyntaxHighlightser } from "react-syntax-highlighter";
 import vs from "react-syntax-highlighter/dist/esm/styles/prism/vs";
 import dark from "react-syntax-highlighter/dist/esm/styles/prism/dark";
 import { createLesson } from '@/lib/actions/lesson.actions';
@@ -1080,7 +1080,7 @@ export default function CreateLessonPage() {
                                       const match =
                                         /language-(\w+)/.exec(className || "");
                                       return match ? (
-                                        <SyntaxHighlighter
+                                        <SyntaxHighlightser
                                           style={dark as any}
                                           language={match[1]}
                                           PreTag="div"
@@ -1088,7 +1088,7 @@ export default function CreateLessonPage() {
                                           ref={null}
                                         >
                                           {String(children).replace(/\n$/, "")}
-                                        </SyntaxHighlighter>
+                                        </SyntaxHighlightser>
                                       ) : (
                                         <code className={className} {...props}>
                                           {children}
@@ -1134,7 +1134,7 @@ export default function CreateLessonPage() {
                                       const match =
                                         /language-(\w+)/.exec(className || "");
                                       return match ? (
-                                        <SyntaxHighlighter
+                                        <SyntaxHighlightser
                                           style={vs as any}
                                           language={match[1]}
                                           PreTag="div"
@@ -1142,7 +1142,7 @@ export default function CreateLessonPage() {
                                           ref={null}
                                         >
                                           {String(children).replace(/\n$/, "")}
-                                        </SyntaxHighlighter>
+                                        </SyntaxHighlightser>
                                       ) : (
                                         <code className={className} {...props}>
                                           {children}
