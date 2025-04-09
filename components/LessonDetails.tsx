@@ -129,7 +129,8 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
             setEdges(newEdges);
         } else {
             console.warn("Attempted to process invalid mindMapData:", mindMapData);
-            setNodes([{id: 'no-data', type: 'default', position: { x: 0, y: 0 }, data: { label: 'No data' }}]);
+            // setNodes([{id: 'no-data', type: 'default', position: { x: 0, y: 0 }, data: { label: 'No data' }}]);
+            setNodes([])
             setEdges([])
         }
     }, []);
