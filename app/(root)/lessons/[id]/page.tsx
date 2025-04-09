@@ -83,7 +83,7 @@ export default function App({ params }: { params: Promise<{ id: string }> }) {
             <div className="absolute w-5/6 right-0 top-20 bottom-0 p-5 flex flex-col items-center gap-y-5">
                 {lesson && (
                     <>
-                        <LessonDetails lesson={lesson} />
+                        <LessonDetails lesson={lesson}  />
                     </>
                 )}
             </div>
