@@ -71,7 +71,7 @@ export async function createLesson(params: CreateLessonParams) {
   }
 }
 
-export async function getLessons(): Promise<LessonResponse[]> {
+export async function getLessons() {
   try {
     await connectToDatabase();
     // Populate owner if you need user details when fetching lessons
