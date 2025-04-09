@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import 'reactflow/dist/style.css';
 
 import Sidebar from "@/components/Sidebar";
@@ -29,6 +29,7 @@ import ReactFlow, {
   useEdgesState,
   Node as ReactFlowNode,
   Edge,
+  addEdge,
 } from "reactflow";
 import "reactflow/dist/base.css";
 import { Badge } from "@/components/ui/badge";
@@ -50,32 +51,43 @@ export default function App({ params }: { params: Promise<{ id: string }> }) {
     const [lesson, setLesson] = useState<Lesson | null>(null);
 
     useEffect(() => {
-        const fetchLesson = async () => {
-            console.log(id);
-            const fetchedLesson = user ? await getLesson(id) : null;
-            console.log('Lesson data fetched from API: ', fetchedLesson);
+        const fetchUser = async () => {
+            const fetchedUser = userId ? await getUserByClerkId(userId) : null;
+            setUser(fetchedUser?.[0] || null);
 
-            if (fetchedLesson) {
-                setLesson(fetchedLesson);
-                console.log('Lesson state updated with fetched data:', fetchedLesson);
-            } else {
-                console.log("Lesson data is not available from API.");
-                setLesson(null);
+            if (fetchedUser) {
+                const fetchLesson = async () => {
+                    console.log(id);
+                    const fetchedLesson = await getLesson(id);
+                    console.log('Lesson data fetched from API: ', fetchedLesson);
+
+                    if (fetchedLesson) {
+                        setLesson(fetchedLesson);
+                        console.log('Lesson state updated with fetched data:', fetchedLesson);
+                    } else {
+                        console.log("Lesson data is not available from API.");
+                        setLesson(null);
+                    }
+                };
+                console.log("Fetching Lesson for ID:", id);
+                fetchLesson();
             }
         };
-        if (user) {
-            console.log("Fetching Lesson for ID:", id);
-            fetchLesson();
-        }
-    }, [user, id]);
+        fetchUser();
+    }, [userId, id]);
 
     return (
         <div className="lexigen-bg w-screen h-screen">
             <Sidebar />
 
             <div className="absolute w-5/6 right-0 top-20 bottom-0 p-5 flex flex-col items-center gap-y-5">
-                {lesson && <LessonDetails lesson={lesson} />}
+                {lesson && (
+                    <>
+                        <LessonDetails lesson={lesson} />
+                    </>
+                )}
             </div>
         </div>
+        
     );
 }

@@ -1,4 +1,3 @@
-import { title } from "process";
 import * as z from "zod";
 
 export const createMindMapSchema = z.object({
@@ -35,7 +34,7 @@ export const createQuizSchema = z.object({
 });
 
 export const createLessonSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string(),
-  lesson: z.string().min(1, "Lesson content is required"),
+  title: z.string().min(1, { message: "Title is required" }),
+  description: z.string().optional(),
+  prompt: z.string().min(1, { message: "Prompt is required" }),
 });

@@ -15,8 +15,6 @@ import {
 import { Input } from "@/components/ui/input";
 import Sidebar from "@/components/Sidebar";
 import { Textarea } from "@/components/ui/textarea";
-import { createQuiz } from "@/lib/actions/quizs.actions";
-import { CreateQuizParams } from "@/types";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@clerk/nextjs";
@@ -26,7 +24,6 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
-import { createQuizSchema } from "@/lib/validator";
 import {
   Card,
   CardContent,
@@ -45,11 +42,22 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/base.css";
 import { Badge } from "@/components/ui/badge";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+
+import { Prism as SyntaxHighlightser } from "react-syntax-highlighter";
 import vs from "react-syntax-highlighter/dist/esm/styles/prism/vs";
 import dark from "react-syntax-highlighter/dist/esm/styles/prism/dark";
 import { createLesson } from '@/lib/actions/lesson.actions';
-import { CreateLessonParams } from '@/lib/types';
+import { CreateLessonParams } from '@/types';
+// import { createLessonSchema } from '@/lib/validations/lesson';
+import * as z from "zod";
+
+
+const createLessonSchema = z.object({
+  title: z.string().min(1, { message: "Title is required" }),
+  description: z.string().optional(),
+  prompt: z.string().min(1, { message: "Prompt is required" }),
+});
+
 
 interface User {
   _id: string;
@@ -451,6 +459,8 @@ export default function CreateLessonPage() {
     Ensure the JSON output is VALID and well-formatted. Escape any necessary characters within the JSON strings (like quotes or backslashes).
     
     MAKE SURE THE JSON IS VALID AND WELL-FORMATTED.
+
+    if the output is too long and the json isn't respected make sure to short it till the Json is valid
     `;
 
   // . Include code examples if relevant to the topic, using markdown code blocks.
@@ -512,12 +522,11 @@ export default function CreateLessonPage() {
   Ensure the JSON output is valid and well-formatted. The root node's name MUST be exactly "${index}".
   `;
 
-  const form = useForm<z.infer<typeof createQuizSchema>>({
-    resolver: zodResolver(createQuizSchema),
+  const form = useForm<z.infer<typeof createLessonSchema>>({
+    resolver: zodResolver(createLessonSchema),
     defaultValues: {
       title: "",
       description: "",
-      quiz: "",
     },
   });
 
@@ -767,10 +776,12 @@ export default function CreateLessonPage() {
           topic: finalLesson.topic,
           language: finalLesson.language,
           index: finalLesson.index,
-            lessons: tempLessons,
+          lessons: tempLessons,
           history: []
         };
         
+        console.log(lessonData)
+
         // Save the lesson
         try {
           const savedLesson = await createLesson(lessonData);
@@ -789,20 +800,20 @@ export default function CreateLessonPage() {
           handleMindMapChange(null);
         }
 
-        const quizData: CreateQuizParams = {
-          title: data.title,
-          description: data.description,
-          owner: userID,
-          createdAt: new Date(),
-          quiz: finalLesson,
-          history: [],
-        };
+        // const quizData: CreateQuizParams = {
+        //   title: data.title,
+        //   description: data.description,
+        //   owner: userID,
+        //   createdAt: new Date(),
+        //   quiz: finalLesson,
+        //   history: [],
+        // };
 
-        toast.promise(createQuiz(quizData), {
-          loading: "Saving lesson...",
-          success: "Lesson created and saved successfully!",
-          error: "Failed to save the lesson.",
-        });
+        // toast.promise(createQuiz(quizData), {
+        //   loading: "Saving lesson...",
+        //   success: "Lesson created and saved successfully!",
+        //   // error: "Failed to save the lesson.",
+        // });
       } catch (apiError: any) {
         console.error("Error interacting with Gemini API:", apiError);
         const message = apiError.message || "An unknown error occurred.";
@@ -820,10 +831,10 @@ export default function CreateLessonPage() {
     [apiKey, userID, handleMindMapChange]
   );
 
-  const onSubmit = async (data: z.infer<typeof createQuizSchema>) => {
-    if (!data.quiz || !data.quiz.trim()) {
+  const onSubmit = async (data: z.infer<typeof createLessonSchema>) => {
+    if (!data.prompt || !data.prompt.trim()) {
       toast.error("Please enter a topic/prompt for the lesson.");
-      form.setError("quiz", { type: "manual", message: "Prompt cannot be empty." });
+      form.setError("prompt", { type: "manual", message: "Prompt cannot be empty." });
       return;
     }
     if (!data.title || !data.title.trim()) {
@@ -831,8 +842,8 @@ export default function CreateLessonPage() {
       form.setError("title", { type: "manual", message: "Title cannot be empty."});
       return;
     }
-    setUserInput(data.quiz);
-    run(data.quiz, data);
+    setUserInput(data.prompt);
+    run(data.prompt, data);
   };
 
   const onTabChange = (value: string, mindMapData: any) => {
@@ -905,7 +916,7 @@ export default function CreateLessonPage() {
                 />
                 <FormField
                   control={form.control}
-                  name="quiz"
+                  name="prompt"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sky-200 text-lg md:text-xl font-bold">

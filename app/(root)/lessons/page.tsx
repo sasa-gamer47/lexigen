@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs"; // Import useAuth from @clerk/nextjs
 import { useRouter } from "next/navigation";
-import { getLessons } from "@/lib/actions/lesson.actions";
+import { getLessonsByUser } from "@/lib/actions/lesson.actions";
 import Sidebar from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,7 +44,7 @@ const LessonsPage = () => {
     useEffect(() => {
         if (userId) {
             const fetchLessons = async () => {
-                const quiz = user ? await getLessons(user._id) : null
+                const quiz = user ? await getLessonsByUser(user._id) : null
 
                 console.log(quiz)
                 setLessons(quiz || []); // Handle potential undefined

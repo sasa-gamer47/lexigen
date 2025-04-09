@@ -1,7 +1,9 @@
+// components/LessonDetails.tsx
 "use client";
 
-import React from "react";
-import { Lesson } from "@/types";
+// REMOVE unused React Flow hooks from top-level imports
+import React from "react"; // Removed useState, useCallback, useMemo
+// import { Lesson } from "@/types"; // This type definition seems inconsistent with your schema/actions. We'll use a local interface or rely on inference.
 import {
   Card,
   CardContent,
@@ -12,30 +14,86 @@ import {
 import { Separator } from "@/components/ui/separator";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import vs from "react-syntax-highlighter/dist/esm/styles/prism/vs";
+// Choose one style
 import dark from "react-syntax-highlighter/dist/esm/styles/prism/dark";
-import ReactFlow, {
-  Controls,
-  Background,
-  useNodesState,
-  useEdgesState,
-  Node as ReactFlowNode,
-  Edge,
-} from "reactflow";
-import "reactflow/dist/base.css";
+// import vs from "react-syntax-highlighter/dist/esm/styles/prism/vs";
+
+// REMOVE ReactFlow imports if MindMapDisplay handles them
+// import ReactFlow, { Controls, Background, ... } from "reactflow";
+// import "reactflow/dist/base.css"; // MindMapDisplay should import this if needed
+
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+// import { cn } from "@/lib/utils"; // Remove if not used
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface LessonDetailsProps {
-  lesson: Lesson;
+// IMPORT the dedicated MindMapDisplay component
+import MindMapDisplay from "./MindMapDisplay"; // Adjust path if necessary
+
+// --- Define interfaces based on expected data structure from DB ---
+// This reflects the structure based on your Mongoose schema and getLesson action
+interface LessonItem {
+  indexTitle: string;
+  item: string;
+  simplified: string;
+  detailed: string;
+  schematic: string;
+  indexNumber: number;
+  itemNumber: number;
+  mindMap?: any; // Or a more specific MindMapNodeData type if defined globally
 }
 
+interface LessonData {
+  _id: string;
+  title: string;
+  description: string;
+  owner: any; // Can be string ID or populated object
+  createdAt: Date | string; // Date from DB, string after JSON.parse
+  topic: string;
+  language: string;
+  index: string[][];
+  lessons: LessonItem[]; // Array of items is top-level according to schema
+  history: any[];
+}
+// --- End Interface Definitions ---
+
+interface LessonDetailsProps {
+  // Use the interface reflecting the actual data structure
+  lesson: LessonData | null;
+}
+
+// Optional helper for safe access (or use ?. optional chaining)
+const getSafe = (fn: () => any, defaultValue: any = null) => {
+  try {
+    const value = fn();
+    return value === undefined || value === null ? defaultValue : value;
+  } catch (e) {
+    return defaultValue;
+  }
+};
+
 const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
+  // REMOVE top-level React Flow state and related hooks:
+  // const [nodes, setNodes, onNodesChange] = useNodesState(...);
+  // const [edges, setEdges, onEdgesChange] = useEdgesState(...);
+  // const initialNodes = useMemo(...);
+  // const initialEdges = useMemo(...);
+  // const handleMindMapChange = useCallback(...);
+  // useMemo(() => { ... }, [lesson, handleMindMapChange]);
+
+  // Handle loading or missing lesson data
+  if (!lesson) {
+    return <div className="text-center text-gray-400 mt-10">Loading lesson details or lesson not found...</div>;
+  }
+
+  // Access the array of lesson items directly from the lesson prop
+  // Based on schema, it should be lesson.lessons (already flat)
+  const lessonItems = lesson.lessons || [];
+
   return (
     <div className="w-full flex flex-col items-center gap-y-5">
+      {/* Access top-level properties directly from lesson prop */}
       <h1 className="text-sky-200 text-3xl font-semibold text-center">
-        {lesson?.title || "Loading..."}
+        {lesson.title || "Loading..."}
       </h1>
       <Card className="w-full bg-gray-800/70 text-white border border-gray-700 shadow-md">
         <CardHeader>
@@ -45,11 +103,11 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
           <CardDescription className="text-gray-300 pt-1">
             Topic:{" "}
             <span className="font-semibold text-sky-400">
-              {lesson?.lesson.topic}
+              {lesson.topic || "N/A"}
             </span>{" "}
             | Language:{" "}
             <span className="font-semibold text-sky-400">
-              {lesson?.lesson.language}
+              {lesson.language || "N/A"}
             </span>
           </CardDescription>
         </CardHeader>
@@ -58,15 +116,25 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
             Index
           </h3>
           <pre className="whitespace-pre-wrap text-gray-300 bg-gray-900/50 p-3 rounded-md text-sm border border-gray-600">
-            {JSON.stringify(lesson?.lesson.index, null, 2)}
+            {/* Access index directly */}
+            {JSON.stringify(lesson.index || [], null, 2)}
           </pre>
         </CardContent>
       </Card>
       <Separator className="bg-sky-700/50 my-4" />
-      {lesson?.lesson.lessons.flat().map((item: any, itemIndex: number) => {
+
+      {/* Map over the lessonItems array */}
+      {lessonItems.map((item, itemIndex) => {
+         // Add a check for item validity before rendering the card
+         if (!item || typeof item.indexTitle !== 'string') {
+            console.warn(`LessonDetails: Skipping rendering invalid lesson item at index ${itemIndex}:`, item);
+            return null; // Don't render this card if item is malformed
+         }
+
         return (
           <Card
-            key={`lesson-item-${itemIndex}`}
+            // Use a more robust key if possible
+            key={`lesson-item-${itemIndex}-${item.item || 'fallback'}`}
             className="bg-gray-900/60 p-4 rounded-md w-full border border-gray-700 shadow"
           >
             <CardHeader className="pb-3">
@@ -75,12 +143,14 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
                   variant="secondary"
                   className="bg-gray-700 border border-gray-600 text-sky-300 px-2 py-0.5 text-sm"
                 >
-                  {item.indexNumber + 1}.{item.itemNumber + 1}
+                  {/* Use safe access for numbers */}
+                  {getSafe(() => item.indexNumber + 1, '?')}.{getSafe(() => item.itemNumber + 1, '?')}
                 </Badge>
                 <span>{item.indexTitle}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {/* Tabs structure remains */}
               <Tabs defaultValue="simplified" className="w-full mt-2">
                 <TabsList className="bg-gray-800 border border-gray-700 grid grid-cols-4 w-full md:w-auto md:inline-flex">
                   <TabsTrigger
@@ -98,7 +168,7 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
                   <TabsTrigger
                     value="mindMap"
                     className="text-gray-300 hover:text-white data-[state=active]:bg-sky-800 data-[state=active]:text-white px-3 py-1.5 text-sm rounded-sm"
-                    disabled={!item.mindMap}
+                    disabled={!item.mindMap} // Disable tab if no mindMap data
                   >
                     Mind Map
                   </TabsTrigger>
@@ -110,25 +180,20 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
                   </TabsTrigger>
                 </TabsList>
 
+                {/* Simplified Tab Content */}
                 <TabsContent value="simplified" className="mt-4">
                   <div className="text-gray-300 bg-gray-800/80 p-4 rounded-md prose prose-invert prose-sm max-w-none border border-gray-700">
                     <ReactMarkdown
                       components={{
-                        code({
-                          node,
-                          className,
-                          children,
-                          ...props
-                        }) {
-                          const match =
-                            /language-(\w+)/.exec(className || "");
+                        code({ node, className, children, ...props }) {
+                          const match = /language-(\w+)/.exec(className || "");
                           return match ? (
                             <SyntaxHighlighter
-                              style={dark as any}
+                              style={dark as any} // Or vs
                               language={match[1]}
                               PreTag="div"
                               {...props}
-                              ref={null}
+                              ref={null} // Add ref={null} for newer versions
                             >
                               {String(children).replace(/\n$/, "")}
                             </SyntaxHighlighter>
@@ -138,51 +203,31 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
                             </code>
                           );
                         },
-                        h1: ({ node, ...props }) => (
-                          <h1
-                            className="text-xl font-semibold text-sky-300"
-                            {...props}
-                          />
-                        ),
-                        h2: ({ node, ...props }) => (
-                          <h2
-                            className="text-lg font-semibold text-sky-400"
-                            {...props}
-                          />
-                        ),
-                        strong: ({ node, ...props }) => (
-                          <strong
-                            className="text-sky-400"
-                            {...props}
-                          />
-                        ),
+                        // Add other markdown component overrides if needed
+                        h1: ({ node, ...props }) => <h1 className="text-xl font-semibold text-sky-300" {...props} />,
+                        h2: ({ node, ...props }) => <h2 className="text-lg font-semibold text-sky-400" {...props} />,
+                        strong: ({ node, ...props }) => <strong className="text-sky-400" {...props} />,
                       }}
                     >
-                      {item?.simplified ||
-                        "*No simplified explanation provided.*"}
+                      {item?.simplified || "*No simplified explanation provided.*"}
                     </ReactMarkdown>
                   </div>
                 </TabsContent>
 
+                {/* Detailed Tab Content */}
                 <TabsContent value="detailed" className="mt-4">
                   <div className="text-gray-300 bg-gray-800/80 p-4 rounded-md prose prose-invert prose-sm max-w-none border border-gray-700">
                     <ReactMarkdown
-                      components={{
-                        code({
-                          node,
-                          className,
-                          children,
-                          ...props
-                        }) {
-                          const match =
-                            /language-(\w+)/.exec(className || "");
+                       components={{
+                        code({ node, className, children, ...props }) {
+                          const match = /language-(\w+)/.exec(className || "");
                           return match ? (
                             <SyntaxHighlighter
-                              style={vs as any}
+                              style={dark as any} // Or vs
                               language={match[1]}
                               PreTag="div"
                               {...props}
-                              ref={null}
+                              ref={null} // Add ref={null}
                             >
                               {String(children).replace(/\n$/, "")}
                             </SyntaxHighlighter>
@@ -192,73 +237,30 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
                             </code>
                           );
                         },
-                        h1: ({ node, ...props }) => (
-                          <h1
-                            className="text-2xl font-semibold text-sky-300"
-                            {...props}
-                          />
-                        ),
-                        h2: ({ node, ...props }) => (
-                          <h2
-                            className="text-xl font-semibold text-sky-400"
-                            {...props}
-                          />
-                        ),
-                        h3: ({ node, ...props }) => (
-                          <h3
-                            className="text-lg font-semibold text-sky-400"
-                            {...props}
-                          />
-                        ),
-                        strong: ({ node, ...props }) => (
-                          <strong
-                            className="text-sky-400"
-                            {...props}
-                          />
-                        ),
-                        a: ({ node, ...props }) => (
-                          <a
-                            className="text-blue-400 hover:text-blue-300"
-                            {...props}
-                          />
-                        ),
+                         h1: ({ node, ...props }) => <h1 className="text-2xl font-semibold text-sky-300" {...props} />,
+                         h2: ({ node, ...props }) => <h2 className="text-xl font-semibold text-sky-400" {...props} />,
+                         h3: ({ node, ...props }) => <h3 className="text-lg font-semibold text-sky-400" {...props} />,
+                         strong: ({ node, ...props }) => <strong className="text-sky-400" {...props} />,
+                         a: ({ node, ...props }) => <a className="text-blue-400 hover:text-blue-300" {...props} />,
                       }}
                     >
-                      {item?.detailed ||
-                        "*No detailed explanation provided.*"}
+                      {item?.detailed || "*No detailed explanation provided.*"}
                     </ReactMarkdown>
                   </div>
                 </TabsContent>
 
+                {/* Mind Map Tab Content */}
                 <TabsContent value="mindMap" className="mt-4">
                   <div className="text-white bg-gray-800/80 p-4 rounded-md border border-gray-700 h-[400px] md:h-[500px] w-full">
-                    {item.mindMap ? (
-                      <ReactFlow
-                        // nodes={nodes}
-                        // edges={edges}
-                        // onNodesChange={onNodesChange}
-                        // onEdgesChange={onEdgesChange}
-                        fitView
-                        nodesDraggable={true}
-                        nodesConnectable={false}
-                        elementsSelectable={true}
-                        className="bg-gray-700/50 rounded"
-                      >
-                        <Background color="#555" gap={16} />
-                        <Controls />
-                      </ReactFlow>
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-gray-400">
-                        Mind map data not available for this item.
-                      </div>
-                    )}
+                    {/* Use the MindMapDisplay component, passing the specific item's mindMap data */}
+                    <MindMapDisplay mindMapData={item.mindMap} />
                   </div>
                 </TabsContent>
 
+                {/* Schematic Tab Content */}
                 <TabsContent value="schematic" className="mt-4">
                   <pre className="text-gray-300 bg-gray-800/80 p-4 rounded-md whitespace-pre-wrap border border-gray-700 text-sm">
-                    {item?.schematic ||
-                      "*No schematic provided.*"}
+                    {item?.schematic || "*No schematic provided.*"}
                   </pre>
                 </TabsContent>
               </Tabs>
