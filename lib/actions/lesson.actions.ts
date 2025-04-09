@@ -5,7 +5,7 @@ import { connectToDatabase } from "@/lib/database";
 import Lesson from "@/lib/database/models/lesson.model";
 import User from "@/lib/database/models/user.model"; // Assuming you have this model
 import { revalidatePath } from "next/cache";
-import { CreateLessonParams } from "@/lib/types"; // Assuming this type matches your input structure
+import { CreateLessonParams, LessonResponse } from "@/lib/types"; // Assuming these types match your input structure
 
 export async function createLesson(params: CreateLessonParams) {
   try {
@@ -57,7 +57,6 @@ export async function createLesson(params: CreateLessonParams) {
       }
     }
 
-
     revalidatePath("/lessons"); // Or appropriate path
 
     // Return the plain JS object version of the created document
@@ -72,10 +71,7 @@ export async function createLesson(params: CreateLessonParams) {
   }
 }
 
-// --- Other functions (getLessons, getLesson, etc.) seem okay ---
-// ... (keep your existing getLessons, getLessonsByUser, getLesson functions) ...
-
-export async function getLessons() {
+export async function getLessons(): Promise<LessonResponse[]> {
   try {
     await connectToDatabase();
     // Populate owner if you need user details when fetching lessons
@@ -88,7 +84,8 @@ export async function getLessons() {
     throw new Error(`Failed to fetch lessons: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
-export async function getLessonsByUser(userId: string) {
+
+export async function getLessonsByUser(userId: string): Promise<LessonResponse[]> {
   try {
     await connectToDatabase();
     const lessons = await Lesson.find({ owner: userId })
@@ -101,7 +98,7 @@ export async function getLessonsByUser(userId: string) {
   }
 }
 
-export async function getLesson(lessonId: string) {
+export async function getLesson(lessonId: string): Promise<LessonResponse> {
   try {
     await connectToDatabase();
     const lesson = await Lesson.findById(lessonId)
