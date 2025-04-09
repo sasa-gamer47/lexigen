@@ -20,7 +20,7 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   Node as ReactFlowNode,
-  Edge,
+  Edge, useReactFlow,
 } from "reactflow";
 import "reactflow/dist/base.css";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,7 @@ interface LessonDetailsProps {
 const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState<ReactFlowNode[]>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
+    const { setViewport } = useReactFlow();
 
     const createReactFlowElements = (mindMapData: any) => {
         const newNodes: ReactFlowNode[] = [];
@@ -124,11 +125,21 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
         }
     }, []);
 
+    const handleFitView = () => {
+        setViewport({
+            x: 0,
+            y: 0,
+            zoom: 1,
+        });
+    };
+
     useMemo(() => {
-        if (lesson?.mindMap) {
-            handleMindMapChange(lesson.mindMap);
+        if (lesson?.mindMap && typeof lesson.mindMap === 'object' && lesson.mindMap.id) {
+            handleMindMapChange(lesson.mindMap)
+        } else {
+            console.warn("lesson.mindMap is not valid:", lesson.mindMap);
         }
-    }, [lesson, handleMindMapChange]);
+    }, [lesson?.mindMap, handleMindMapChange]);
 
   return (
     <div className="w-full flex flex-col items-center gap-y-5">
@@ -337,6 +348,8 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
                         nodesConnectable={false}
                         elementsSelectable={true}
                         className="bg-gray-700/50 rounded"
+                        nodes={nodes}
+                        edges={edges}
                       >
                         <Background color="#555" gap={16} />
                         <Controls />
