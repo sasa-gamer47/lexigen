@@ -1,8 +1,9 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { Edge, Node } from "reactflow";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export const handleError = (error: unknown) => {
@@ -12,7 +13,7 @@ export const handleError = (error: unknown) => {
 }
 
 export const createReactFlowElements = (mindMapData: any) => {
-        const newNodes: ReactFlowNode[] = [];
+        const newNodes: Node[] = [];
         const newEdges: Edge[] = [];
         const nodePositions: { [key: string]: { x: number; y: number } } = {};
         const nodeWidth = 150;
