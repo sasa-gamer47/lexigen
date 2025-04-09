@@ -41,7 +41,7 @@ export type Lesson = {
   topic: string;
   language: string;
   index: string[][];
-  lessons: LessonContent;
+  lessons: any //LessonContent;
   history: any[];
   createdAt: Date;
 }
@@ -54,6 +54,6 @@ export type CreateLessonParams = {
   topic: string
   language: string
   index: any
-  lessons: LessonContent
+  lessons: any //LessonContent
   history: any[]
 }
