@@ -54,6 +54,9 @@ export type CreateLessonParams = {
   description: string
   owner: string
   createdAt: Date
+  topic: string
+  language: string
+  index: any
   lesson: LessonContent
   history: any[]
 }
