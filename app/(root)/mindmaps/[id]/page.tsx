@@ -562,7 +562,7 @@ export default function App({ params }: { params: Promise<{ id: string }> }) {
                                 custom: EditableNode,
                             }}                            
                             onNodeClick={(_, node) => handleNodeSelect([node])}                            
-                            onNodesChange={(changes) => { if (changes.some(c => c.type === 'select' && !c.selected)) setSelectedNodes([])}}
+                            // onNodesChange={(changes) => { onNodesChange(changes); if (changes.some(c => c.type === 'select' && !c.selected)) setSelectedNodes([])}}
                         >                            
                             <Background color="#aaa" size={3} />
                             <Controls />
