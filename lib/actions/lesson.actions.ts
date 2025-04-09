@@ -85,7 +85,7 @@ export async function getLessons() {
   }
 }
 
-export async function getLessonsByUser(userId: string): Promise<LessonResponse[]> {
+export async function getLessonsByUser(userId: string) {
   try {
     await connectToDatabase();
     const lessons = await Lesson.find({ owner: userId })
@@ -98,7 +98,7 @@ export async function getLessonsByUser(userId: string): Promise<LessonResponse[]
   }
 }
 
-export async function getLesson(lessonId: string): Promise<LessonResponse> {
+export async function getLesson(lessonId: string) {
   try {
     await connectToDatabase();
     const lesson = await Lesson.findById(lessonId)
