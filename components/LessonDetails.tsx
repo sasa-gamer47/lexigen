@@ -135,7 +135,7 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
         }
     }, []);
 
-    const handleFitView = (event: MouseEvent<HTMLButtonElement>) => {
+    const handleFitView = () => {
         setViewport({
             x: 0,
             y: 0,
