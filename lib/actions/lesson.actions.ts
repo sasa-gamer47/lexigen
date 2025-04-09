@@ -1,11 +1,11 @@
 // lessons.actions.ts
 "use server"
 
-import { connectToDatabase } from "@/lib/database";
-import Lesson from "@/lib/database/models/lesson.model";
-import User from "@/lib/database/models/user.model"; // Assuming you have this model
+import { connectToDatabase } from "@/database";
+import Lesson from "@/database/models/lesson.model";
+import User from "@/database/models/user.model"; // Assuming you have this model
 import { revalidatePath } from "next/cache";
-import { CreateLessonParams, LessonResponse } from "@/lib/types"; // Assuming these types match your input structure
+import { CreateLessonParams, LessonResponse } from "../types"; // Assuming these types match your input structure
 
 export async function createLesson(params: CreateLessonParams) {
   try {
