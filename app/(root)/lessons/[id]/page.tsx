@@ -81,7 +81,7 @@ export default function App({ params }: { params: Promise<{ id: string }> }) {
         <div className="lexigen-bg w-screen h-screen">
             <Sidebar />
 
-            <div className="absolute w-5/6 right-0 top-20 bottom-0 p-5 flex flex-col items-center gap-y-5">
+            <div className="absolute w-full lg:w-5/6 right-0 top-20 bottom-0 p-5 flex flex-col items-center gap-y-5 md:w-4/5">
                 {lesson && (
                     <ReactFlowProvider>
                         <LessonDetails lesson={lesson}  />

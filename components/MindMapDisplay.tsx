@@ -35,8 +35,8 @@ interface MindMapDisplayProps {
 
 const MindMapDisplay: React.FC<MindMapDisplayProps> = ({ mindMapData }) => {
   // Initialize state INSIDE this component
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<ReactFlowNode[]>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
 
   // Effect to update nodes/edges when mindMapData changes for THIS instance
   useEffect(() => {
@@ -63,23 +63,23 @@ const MindMapDisplay: React.FC<MindMapDisplayProps> = ({ mindMapData }) => {
 
   // Render the ReactFlow instance for THIS mind map
   return (
-    <ReactFlowProvider>
-        <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange} // Use local state handlers
-            onEdgesChange={onEdgesChange} // Use local state handlers
-            fitView // Automatically fit the view
-            nodesDraggable={true}
-            nodesConnectable={false}
-            elementsSelectable={true}
-            className="bg-gray-700/50 rounded"
-            proOptions={{ hideAttribution: true }}
-        >
-            <Background color="#555" gap={16} />
-            <Controls />
-        </ReactFlow>
-    </ReactFlowProvider>
+    <div className="w-full h-full">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange} // Use local state handlers
+        onEdgesChange={onEdgesChange} // Use local state handlers
+        fitView // Automatically fit the view
+        nodesDraggable={true}
+        nodesConnectable={false}
+        elementsSelectable={true}
+        className="bg-gray-700/50 rounded"
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background color="#555" gap={16} />
+        <Controls />
+      </ReactFlow>
+    </div>
   );
 };
 

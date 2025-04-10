@@ -162,16 +162,16 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
     }, [nodes, edges]);
 
   return (
-    <div className="w-full flex flex-col items-center gap-y-5">
-      <h1 className="text-sky-200 text-3xl font-semibold text-center">
+    <div className="w-full flex flex-col items-center gap-y-5 px-4 md:px-8 lg:px-12">
+      <h1 className="text-sky-200 text-2xl md:text-3xl font-semibold text-center sm:text-xl">
         {lesson.title || "Loading..."}
       </h1>
-      <Card className="w-full bg-gray-800/70 text-white border border-gray-700 shadow-md">
-        <CardHeader>
-          <CardTitle className="text-sky-300 text-xl font-bold">
+      <Card className="w-full bg-gray-800/70 text-white border border-gray-700 shadow-md md:rounded-lg sm:p-2">
+        <CardHeader className="sm:p-1">
+          <CardTitle className="text-sky-300 text-lg md:text-xl font-bold sm:text-base">
             Overview
           </CardTitle>
-          <CardDescription className="text-gray-300 pt-1">
+          <CardDescription className="text-gray-300 pt-1 text-sm md:text-base sm:text-xs">
             Topic:{" "}
             <span className="font-semibold text-sky-400">
               {lesson.topic}
@@ -182,11 +182,11 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
             </span>
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <h3 className="text-sky-400 text-lg font-semibold mb-2">
+        <CardContent className="sm:p-1">
+          <h3 className="text-sky-400 text-lg font-semibold mb-2 sm:text-sm">
             Index
           </h3>
-          <pre className="whitespace-pre-wrap text-gray-300 bg-gray-900/50 p-3 rounded-md text-sm border border-gray-600">
+          <pre className="whitespace-pre-wrap text-gray-300 bg-gray-900/50 p-3 rounded-md text-sm border border-gray-600 sm:p-1 sm:text-xs">
             {JSON.stringify(lesson.index, null, 2)}
           </pre>
         </CardContent>
@@ -196,10 +196,10 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
         return (
           <Card
             key={`lesson-item-${itemIndex}`}
-            className="bg-gray-900/60 p-4 rounded-md w-full border border-gray-700 shadow"
+            className="bg-gray-900/60 p-4 rounded-md w-full border border-gray-700 shadow md:rounded-lg sm:p-2"
           >
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sky-200 text-lg md:text-xl font-semibold flex items-center gap-x-2">
+            <CardHeader className="pb-3 sm:pb-1">
+              <CardTitle className="text-sky-200 text-lg md:text-xl font-semibold flex items-center gap-x-2 sm:text-base">
                 <Badge
                   variant="secondary"
                   className="bg-gray-700 border border-gray-600 text-sky-300 px-2 py-0.5 text-sm"
@@ -209,7 +209,7 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
                 <span>{item.indexTitle}</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="sm:p-1">
               <Tabs defaultValue="simplified" className="w-full mt-2">
                 <TabsList className="bg-gray-800 border border-gray-700 grid grid-cols-4 w-full md:w-auto md:inline-flex">
                   <TabsTrigger
