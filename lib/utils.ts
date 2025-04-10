@@ -27,6 +27,11 @@ export const createReactFlowElements = (mindMapData: any) => {
             level: number,
             index: number
         ) => {
+            if (!node || typeof node !== 'object' || !node.id || !node.name) {
+                console.warn("Invalid node data:", node);
+                return;
+            }
+
             const nodeId = node.id;
             const nodeLabel = node.name;
             const x = parentId
@@ -72,7 +77,7 @@ export const createReactFlowElements = (mindMapData: any) => {
                 });
             }
 
-            if (node.children && node.children.length > 0) {
+            if (node.children && Array.isArray(node.children)) {
                 node.children.forEach((child: any, childIndex: number) => {
                     traverse(child, nodeId, level + 1, childIndex);
                 });

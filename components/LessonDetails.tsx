@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, MouseEvent } from "react";
+import React, { useCallback, useMemo, MouseEvent, useEffect } from "react";
 import { Lesson } from "@/types";
 import {
   Card,
@@ -26,6 +26,7 @@ import "reactflow/dist/base.css";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MindMapDisplay from "@/components/MindMapDisplay";
 
 interface LessonDetailsProps {
   lesson: Lesson;
@@ -60,6 +61,11 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
             level: number,
             index: number
         ) => {
+            if (!node || typeof node !== 'object' || !node.id || !node.name) {
+                console.warn("Invalid node data:", node);
+                return;
+            }
+
             const nodeId = node.id;
             const nodeLabel = node.name;
             const x = parentId
@@ -105,7 +111,7 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
                 });
             }
 
-            if (node.children && node.children.length > 0) {
+            if (node.children && Array.isArray(node.children)) {
                 node.children.forEach((child: any, childIndex: number) => {
                     traverse(child, nodeId, level + 1, childIndex);
                 });
@@ -150,6 +156,10 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
             console.warn("lesson.mindMap is not valid:", (lesson as LessonWithMindMap).mindMap);
         } 
     }, [(lesson as LessonWithMindMap)?.mindMap, handleMindMapChange]);
+
+    useEffect(() => {
+        handleFitView();
+    }, [nodes, edges]);
 
   return (
     <div className="w-full flex flex-col items-center gap-y-5">
@@ -352,19 +362,7 @@ const LessonDetails: React.FC<LessonDetailsProps> = ({ lesson }) => {
                 <TabsContent value="mindMap" className="mt-4">
                   <div className="text-white bg-gray-800/80 p-4 rounded-md border border-gray-700 h-[400px] md:h-[500px] w-full">
                     {item.mindMap ? (
-                      <ReactFlow
-                        fitView
-                        nodesDraggable={true}
-                        nodesConnectable={false}
-                        elementsSelectable={true}
-                        className="bg-gray-700/50 rounded"
-                        nodes={nodes}
-                        edges={edges}
-                      >
-                        <Background color="#555" gap={16} />
-                        <button onClick={handleFitView} className="absolute top-2 left-2 bg-gray-600 text-white px-2 py-1 rounded-md">Fit View</button>                        
-                        <Controls />
-                      </ReactFlow>
+                      <MindMapDisplay mindMapData={item.mindMap} />
                     ) : (
                       <div className="flex items-center justify-center h-full text-gray-400">
                         Mind map data not available for this item.
