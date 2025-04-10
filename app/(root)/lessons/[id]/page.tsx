@@ -35,6 +35,7 @@ import "reactflow/dist/base.css";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import LessonDetails from "@/components/LessonDetails";
+import { ReactFlowProvider } from 'reactflow';
 
 interface User {
     _id: string;
@@ -82,12 +83,11 @@ export default function App({ params }: { params: Promise<{ id: string }> }) {
 
             <div className="absolute w-5/6 right-0 top-20 bottom-0 p-5 flex flex-col items-center gap-y-5">
                 {lesson && (
-                    <>
+                    <ReactFlowProvider>
                         <LessonDetails lesson={lesson}  />
-                    </>
+                    </ReactFlowProvider>
                 )}
             </div>
         </div>
-        
     );
 }
