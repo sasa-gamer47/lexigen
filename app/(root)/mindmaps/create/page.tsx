@@ -33,7 +33,7 @@ import { getUserByClerkId } from "@/lib/actions/user.actions";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod"
 import { createMindMapSchema } from "@/lib/validator";
-import { createReactFlowElements } from '../../../../root/mindmaps/create/mindmapUtils';
+import { createReactFlowElements } from '@/app/root/mindmaps/create/mindmapUtils';
 
 
 interface User {
