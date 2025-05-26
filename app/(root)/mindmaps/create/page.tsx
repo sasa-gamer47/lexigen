@@ -182,7 +182,7 @@ const form = useForm<z.infer<typeof createMindMapSchema>>({
 
       console.log("Starting chat session...");
 
-      const result = await chatSession.sendMessage(geminiInputPrompt(userInput, data.textQuantity));
+      const result = await chatSession.sendMessage(geminiInputPrompt(userInput, formData.textQuantity));
       const rawResponse = result.response.text();
       console.log("Gemini API Response Text:", rawResponse);
 
