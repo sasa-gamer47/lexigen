@@ -33,6 +33,7 @@ import { getUserByClerkId } from "@/lib/actions/user.actions";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod"
 import { createMindMapSchema } from "@/lib/validator";
+import { createReactFlowElements } from './mindmapUtils';
 
 
 interface User {
@@ -44,6 +45,9 @@ interface User {
 
 
 const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
+// ---- START OF COPIED AND MODIFIED FUNCTIONS ----
+// ---- END OF COPIED AND MODIFIED FUNCTIONS ----
 
 export default function App() {
   const [userInput, setUserInput] = useState<string | undefined>();
@@ -70,35 +74,45 @@ export default function App() {
   
 
   const geminiInputPrompt = (topic: string | undefined, textQuantity: string) => `
-    create a mind map with ${topic} in json. this is the structure:
-    each paragraph should ha ve this amount of text ${textQuantity}
-
-
-      
+    Create a hierarchical mind map about "${topic}".
+    The output MUST be a valid JSON object.
+    Use the following JSON structure:
 
     {
-      "initialNodes": [
-        {
-          "id": "1",
-          "position": { "x": 0, "y": 0 },
-          "data": { "label": "Node 1" }
-        }
-      ],
-      "initialEdges": [
-        {
-          "id": "e1-2",
-          "source": "1",
-          "target": "2",
-          "animated": true,
-          "label": "Edge 1-2"
-        }
-      ]
+      "topic": "Main Topic", // Replace "Main Topic" with the actual main topic
+      "mindMap": {
+        "id": "root", // Keep "root" as the ID for the main topic
+        "name": "Main Topic", // Replace "Main Topic" with the actual main topic
+        "children": [
+          {
+            "id": "child1", // Generate a unique ID for this node
+            "name": "Sub-topic 1", // Replace with a relevant sub-topic
+            "children": [
+              {
+                "id": "grandchild1", // Generate a unique ID for this node
+                "name": "Detail A", // Replace with a relevant detail
+                "children": [] // Can be empty or have further nested children
+              }
+            ]
+          },
+          {
+            "id": "child2", // Generate a unique ID for this node
+            "name": "Sub-topic 2", // Replace with another relevant sub-topic
+            "children": []
+          }
+          // Add more children or nested children as needed
+        ]
+      }
     }
 
-    ONLY AND EXCLUSIVELY JSON OUTPUT
-    IF THE OUTPUT IS TOO LONG, PLEASE REDUCE THE NUMBER OF NODES AND EDGES
-    AND MAKE ALWAYS SURE TO HAVE A VALID JSON OUTPUT, THAT END IN THE RIGHT WAY 
-
+    Instructions for the AI:
+    1.  Replace placeholder text like "Main Topic", "Sub-topic 1", "Detail A" with content relevant to "${topic}".
+    2.  Generate unique IDs for every node (e.g., "child1", "grandchild1", "nodeA", "nodeB2C").
+    3.  The "children" array can contain more objects or be empty.
+    4.  The amount of text for each "name" should be guided by the parameter: "${textQuantity}".
+    5.  ONLY AND EXCLUSIVELY JSON OUTPUT. Do not include any other text, explanation, or markdown before or after the JSON object.
+    6.  If the mind map becomes too large or complex, reduce the number of nodes and edges to ensure the output remains a valid and manageable JSON.
+    7.  Ensure the final output is a single, complete, and valid JSON object, correctly terminated.
     `;
 
 
@@ -117,20 +131,20 @@ const form = useForm<z.infer<typeof createMindMapSchema>>({
   const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
 
-  useEffect(() => {
-    if (data) {
-      console.log("Setting nodes and edges from data:", data);
-      setNodes(data.initialNodes || []);
-      setEdges(data.initialEdges || []);
-    }
-  }, [data]);
+  // useEffect(() => { // This useEffect is no longer needed as run function directly sets nodes and edges
+  //   if (data) {
+  //     console.log("Setting nodes and edges from data:", data);
+  //     setNodes(data.initialNodes || []);
+  //     setEdges(data.initialEdges || []);
+  //   }
+  // }, [data]);
 
   const onConnect = useCallback(
     (params: any) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
   );
 
-  const run = useCallback(async (userInput: string, data: any) => {
+  const run = useCallback(async (userInput: string, formData: any) => { // Renamed data to formData
     if (!apiKey) {
       console.error("GEMINI_API_KEY is not set in environment variables!");
       alert("API key is missing. Check console for details.");
@@ -182,17 +196,22 @@ const form = useForm<z.infer<typeof createMindMapSchema>>({
       try {
         const jsonData = JSON.parse(jsonString);
         console.log("Parsed JSON Data:", jsonData);
-        setData(jsonData);
+        // setData(jsonData); // Removed: No longer setting raw data directly for React Flow
 
-        setMindMap(jsonData)
+        // Convert to React Flow elements using the theme
+        const { nodes: flowNodes, edges: flowEdges } = createReactFlowElements(jsonData.mindMap, formData.theme); // Use jsonData.mindMap
+        setNodes(flowNodes); // Update ReactFlow's nodes
+        setEdges(flowEdges); // Update ReactFlow's edges
+
+        setMindMap(jsonData.mindMap) // Set with jsonData.mindMap for consistency
         
         if (user?._id) {
-          const mindMapData = {
-            title: data.title,
-            description: data.description,
+          const mindMapData = { // This is what gets sent to the backend
+            title: formData.title,
+            description: formData.description,
             owner: user._id,
             createdAt: new Date(),
-            mindMap: jsonData
+            mindMap: jsonData.mindMap // Use jsonData.mindMap for saving
           }
       
           console.log(mindMapData)
@@ -217,7 +236,7 @@ const form = useForm<z.infer<typeof createMindMapSchema>>({
       console.error("Error from Gemini API:", apiError);
       alert("Error fetching data from Gemini API. Check console for details.");
     }
-  }, [apiKey]);
+  }, [apiKey, user, setNodes, setEdges]); // Added user, setNodes, setEdges to dependencies
 
   // const secondRun = useCallback(async (userInput: any, jsonData: any) => {
 
