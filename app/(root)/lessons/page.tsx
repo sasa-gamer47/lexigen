@@ -82,12 +82,21 @@ const LessonsPage = () => {
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="text-white">
-                                        <p className="text-sm">{lesson.description}</p>
+                                        <p className="text-sm text-gray-300 mb-2">{lesson.description}</p>
+                                        {lesson.lessons && lesson.lessons.length > 0 && lesson.lessons[0] && typeof lesson.lessons[0].simplified === 'string' && lesson.lessons[0].simplified.length > 0 && (
+                                            <>
+                                                <p className="text-xs text-sky-300 mb-1">Lesson Preview:</p>
+                                                <p className="text-sm mb-3">
+                                                    {lesson.lessons[0].simplified.substring(0, 100)}
+                                                    {lesson.lessons[0].simplified.length > 100 ? "..." : ""}
+                                                </p>
+                                            </>
+                                        )}
                                         <div className="mt-4 flex justify-between items-center">
                                             <p className="text-xs text-gray-400">
                                                 Created: {format(new Date(lesson.createdAt), "dd/MM/yyyy")}
                                             </p>
-                                            {lesson.history && lesson.history.length > 0 && ( // Optional chaining and check if greater than 0
+                                            {lesson.history && lesson.history.length > 0 && ( 
                                                 <p className="text-xs text-green-400">
                                                     {lesson.history.length} Attempts
                                                 </p>

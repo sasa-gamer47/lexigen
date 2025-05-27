@@ -146,8 +146,10 @@ const form = useForm<z.infer<typeof createQuizSchema>>({
     const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(apiKey);
 
+    const modelId = "gemini-1.5-flash-latest";
+    console.log(`Attempting to use Gemini model: ${modelId}`);
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash-latest",
+      model: modelId,
       safetySettings: [
         {
           category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -222,8 +224,14 @@ const form = useForm<z.infer<typeof createQuizSchema>>({
       }
     } catch (apiError: any) {
       console.error("Error from Gemini API:", apiError);
-      alert("Error fetching data from Gemini API. Check console for details.");
-      setError("Error fetching data from Gemini API.");
+      if (apiError.message && (apiError.message.includes("429") || apiError.message.toLowerCase().includes("quota"))) {
+        const quotaErrorMessage = "You've exceeded your Gemini API usage quota. Please check your Google Cloud Console or API key limits and billing details. The API call cannot proceed at this time.";
+        alert(quotaErrorMessage);
+        setError(quotaErrorMessage);
+      } else {
+        alert("Error fetching data from Gemini API. Check console for details.");
+        setError("Error fetching data from Gemini API.");
+      }
     } finally {
         setIsLoading(false);
     }

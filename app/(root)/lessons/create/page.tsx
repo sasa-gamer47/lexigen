@@ -565,8 +565,10 @@ export default function CreateLessonPage() {
         await import("@google/generative-ai");
       const genAI = new GoogleGenerativeAI(apiKey);
 
+      const modelId = "gemini-1.5-flash-latest";
+      console.log(`Attempting to use Gemini model: ${modelId}`);
       const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash-latest",
+        model: modelId,
         safetySettings: [
           {
             category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -815,10 +817,16 @@ export default function CreateLessonPage() {
         // });
       } catch (apiError: any) {
         console.error("Error interacting with Gemini API:", apiError);
-        const message = apiError.message || "An unknown error occurred.";
-        toast.error(`API Error: ${message}`);
-        setError(`Error fetching data from Gemini API: ${message}`);
-        if (apiError.response) {
+        if (apiError.message && (apiError.message.includes("429") || apiError.message.toLowerCase().includes("quota"))) {
+          const quotaErrorMessage = "You've exceeded your Gemini API usage quota. Please check your Google Cloud Console or API key limits and billing details. The API call cannot proceed at this time.";
+          toast.error(quotaErrorMessage);
+          setError(quotaErrorMessage);
+        } else {
+          const message = apiError.message || "An unknown error occurred.";
+          toast.error(`API Error: ${message}`);
+          setError(`Error fetching data from Gemini API: ${message}`);
+        }
+        if (apiError.response) { // This part can remain to log details for any API error
           console.error("API Response Data:", apiError.response.data);
           console.error("API Response Status:", apiError.response.status);
         }
